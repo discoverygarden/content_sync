@@ -10,6 +10,8 @@ namespace Drupal\content_sync;
  */
 interface ContentSyncManagerInterface {
 
+  const DEFAULT_DIRECTORY = 'sync';
+
   /**
    * @return \Drupal\content_sync\Importer\ContentImporterInterface
    */

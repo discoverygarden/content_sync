@@ -2,6 +2,10 @@
 
 namespace Drupal\content_sync\Commands;
 
+use Webmozart\PathUtil\Path;
+use Drush\Utils\FsUtils;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Drupal\content_sync\ContentSyncManagerInterface;
 use Drupal\content_sync\Exporter\ContentExporterInterface;
 use Drupal\content_sync\Form\ContentExportTrait;
@@ -47,7 +51,6 @@ class ContentSyncCommands extends DrushCommands {
   use ContentImportTrait;
   use DependencySerializationTrait;
   use StringTranslationTrait;
-
 
   protected $configManager;
 
@@ -189,6 +192,22 @@ class ContentSyncCommands extends DrushCommands {
   }
 
   /**
+    * @hook interact @interact-content-label
+   */
+  public function interactContentLabel(InputInterface $input, ConsoleOutputInterface $output) {
+    global $content_directories;
+    if (empty($input->getArgument('label'))) {
+      $choices = drush_map_assoc(array_keys($content_directories));
+      if (count($choices) >= 2) {
+        $label = $this->io()->choice('Choose a content_sync directory:', $choices);
+        $input->setArgument('label', $label);
+      } else {
+        $label = ContentSyncManagerInterface::DEFAULT_DIRECTORY;
+      }
+    }
+  }
+
+  /**
    * Import content from a content directory.
    *
    * @param string|null $label
@@ -198,7 +217,7 @@ class ContentSyncCommands extends DrushCommands {
    *   The command options.
    *
    * @command content-sync:import
-   * @interact-config-label
+   * @interact-content-label
    * @option entity-types A list of entity type names separated by commas.
    * @option uuids A list of UUIDs separated by commas.
    * @option actions A list of Actions separated by commas.
@@ -212,8 +231,17 @@ class ContentSyncCommands extends DrushCommands {
     'actions' => '',
     'skiplist' => FALSE ]) {
 
+    // Determine source directory.
+    $source_storage_dir = Path::canonicalize(\content_sync_get_content_directory($label));
+    // Prepare content storage for the import.
+    if ($label == ContentSyncManagerInterface::DEFAULT_DIRECTORY) {
+      $source_storage = $this->getContentStorageSync();
+    } else {
+      $source_storage = new FileStorage($source_storage_dir);
+    }
+
     //Generate comparer with filters.
-    $storage_comparer = new ContentStorageComparer($this->contentStorageSync, $this->contentStorage,  $this->configManager);
+    $storage_comparer = new ContentStorageComparer($source_storage, $this->contentStorage,  $this->configManager);
     $change_list = [];
     $collections = $storage_comparer->getAllCollectionNames();
     if (!empty($options['entity-types'])){
@@ -273,8 +301,13 @@ class ContentSyncCommands extends DrushCommands {
     }
     // Set the Import Batch
     if (!empty($content_to_sync) || !empty($content_to_delete)) {
-      $batch = $this->generateImportBatch($content_to_sync,
-        $content_to_delete);
+      $batch = $this->generateImportBatch(
+        $content_to_sync,
+        $content_to_delete,
+        [
+          'content_sync_directory' => $source_storage_dir,
+        ]
+      );
       batch_set($batch);
       drush_backend_batch_process();
     }
@@ -292,7 +325,7 @@ class ContentSyncCommands extends DrushCommands {
    *   The command options.
    *
    * @command content-sync:export
-   * @interact-config-label
+   * @interact-content-label
    * @option entity-types A list of entity type names separated by commas.
    * @option uuids A list of UUIDs separated by commas.
    * @option actions A list of Actions separated by commas.
@@ -306,12 +339,21 @@ class ContentSyncCommands extends DrushCommands {
     'entity-types' => '',
     'uuids' => '',
     'actions' => '',
-    'files' => '',
+    'files' => 'folder',
     'include-dependencies' => FALSE,
     'skiplist' => FALSE ]) {
 
+    // Determine destination directory.
+    $destination_dir = Path::canonicalize(\content_sync_get_content_directory($label));
+    // Prepare content storage for the export.
+    if ($label == ContentSyncManagerInterface::DEFAULT_DIRECTORY) {
+      $target_storage = $this->getContentStorageSync();
+    } else {
+      $target_storage = new FileStorage($destination_dir);
+    }
+
     //Generate comparer with filters.
-    $storage_comparer = new ContentStorageComparer($this->contentStorage, $this->contentStorageSync, $this->configManager);
+    $storage_comparer = new ContentStorageComparer($this->contentStorage, $target_storage, $this->configManager);
     $change_list = [];
     $collections = $storage_comparer->getAllCollectionNames();
     if (!empty($options['entity-types'])){
@@ -370,8 +412,8 @@ class ContentSyncCommands extends DrushCommands {
           case 'update':
           case 'create':
             foreach ($contents as $content) {
-              //$data = $storage_comparer->getSourceStorage($collection)->read($content);
-              //$storage_comparer->getTargetStorage($collection)->write($content, $data);
+              $data = $storage_comparer->getSourceStorage($collection)->read($content);
+              $storage_comparer->getTargetStorage($collection)->write($content, $data);
               $entity = explode('.', $content);
               $entities_list[] = [
                 'entity_type' => $entity[0],
@@ -384,13 +426,17 @@ class ContentSyncCommands extends DrushCommands {
     }
     // Files options
     $include_files = self::processFilesOption($options);
-
     // Set the Export Batch
     if (!empty($entities_list)) {
-      $batch = $this->generateExportBatch($entities_list,
-        ['export_type' => 'folder',
-         'include_files' => $include_files,
-         'include_dependencies' => $options['include-dependencies']]);
+      $batch = $this->generateExportBatch(
+        $entities_list,
+        [
+          'export_type' => 'folder',
+          'include_files' => $include_files,
+          'include_dependencies' => $options['include-dependencies'],
+          'content_sync_directory' => $destination_dir,
+        ]
+      );
       batch_set($batch);
       drush_backend_batch_process();
     }
