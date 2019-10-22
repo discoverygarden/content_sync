@@ -2,6 +2,7 @@
 
 namespace Drupal\content_sync\DependencyResolver;
 
+use Drupal\content_sync\ContentSyncManagerInterface;
 use Drupal\Core\Serialization\Yaml;
 
 /**
