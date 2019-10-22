@@ -232,7 +232,7 @@ class ContentSyncCommands extends DrushCommands {
     'skiplist' => FALSE ]) {
 
     // Determine source directory.
-    $source_storage_dir = Path::canonicalize(\content_sync_get_content_directory($label));
+    $source_storage_dir = content_sync_get_content_directory($label);
     // Prepare content storage for the import.
     if ($label == ContentSyncManagerInterface::DEFAULT_DIRECTORY) {
       $source_storage = $this->getContentStorageSync();

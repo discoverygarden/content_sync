@@ -32,8 +32,8 @@ trait ContentImportTrait {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     }
-    $serializer_context['content_sync_directory_entities'] =  content_sync_get_content_directory($serializer_context['content_sync_directory']) . "/entities";
-    $serializer_context['content_sync_directory_files'] =  content_sync_get_content_directory($serializer_context['content_sync_directory']) . "/files";
+    $serializer_context['content_sync_directory_entities'] =  $serializer_context['content_sync_directory'] . "/entities";
+    $serializer_context['content_sync_directory_files'] =  $serializer_context['content_sync_directory'] . "/files";
     $operations[] = [[$this, 'deleteContent'], [$content_to_delete, $serializer_context]];
     $operations[] = [[$this, 'syncContent'], [$content_to_sync, $serializer_context]];
 
