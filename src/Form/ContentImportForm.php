@@ -2,6 +2,7 @@
 
 namespace Drupal\content_sync\Form;
 
+use Drupal\content_sync\ContentSyncManagerInterface;
 use Drupal\Core\Archiver\ArchiveTar;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -21,7 +22,7 @@ class ContentImportForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $directory = content_sync_get_content_directory('sync');
+    $directory = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     $directory_is_writable = is_writable($directory);
     if (!$directory_is_writable) {
       $this->logger('content_sync')->error('The directory %directory is not writable.', ['%directory' => $directory, 'link' => 'Import Archive']);
@@ -62,7 +63,7 @@ class ContentImportForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($path = $form_state->getValue('import_tarball')) {
-      $directory = content_sync_get_content_directory('sync');
+      $directory = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
       emptyDirectory($directory);
       try {
         $archiver = new ArchiveTar($path, 'gz');
