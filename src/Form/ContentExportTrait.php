@@ -26,10 +26,13 @@ trait ContentExportTrait {
    * export_type:
    * Tar -> YML to Tar file
    * Snapshot -> YML to content_sync table.
-   * Directory -> YML to content_sync_directory_entities.
+   * Directory -> YML to content_sync_directory_entities
+   *
+   * content_sync_directory:
+   * path for the content sync directory.
    *
    * content_sync_directory_entities:
-   * path for the content sync directory.
+   * path for the content sync entities directory.
    *
    * content_sync_directory_files:
    * path to store media/files.
@@ -40,10 +43,13 @@ trait ContentExportTrait {
    * @return array
    */
   public function generateExportBatch($entities, $serializer_context = []) {
-    $serializer_context['content_sync_directory_entities'] =  content_sync_get_content_directory(CONFIG_SYNC_DIRECTORY)."/entities";
+    if (!isset($serializer_context['content_sync_directory'])) {
+      $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
+    }
+    $serializer_context['content_sync_directory_entities'] = $serializer_context['content_sync_directory'] . "/entities";
     if (isset($serializer_context['include_files'])){
       if ($serializer_context['include_files'] == 'folder'){
-        $serializer_context['content_sync_directory_files'] =  content_sync_get_content_directory(CONFIG_SYNC_DIRECTORY)."/files";
+        $serializer_context['content_sync_directory_files'] = $serializer_context['content_sync_directory'] . "/files";
       }
       if ($serializer_context['include_files'] == 'base64'){
         $serializer_context['content_sync_file_base_64'] = TRUE;

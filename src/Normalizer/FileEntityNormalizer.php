@@ -4,6 +4,11 @@ namespace Drupal\content_sync\Normalizer;
 
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorManager;
 use Drupal\Core\Entity\EntityManagerInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\EntityFieldManager;
+use Drupal\Core\Entity\EntityTypeBundleInfo;
+use Drupal\Core\Entity\EntityTypeRepositoryInterface;
+use Drupal\Core\Entity\EntityRepository;
 use Drupal\Core\File\FileSystemInterface;
 
 /**
@@ -28,14 +33,36 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * FileEntityNormalizer constructor.
    *
-   * @param EntityManagerInterface $entity_manager
+   * @param EntityTypeManagerInterface $entity_manager
    *
    * @param SyncNormalizerDecoratorManager $decorator_manager
    *
    * @param FileSystemInterface $file_system
+   *
+   * @param EntityTypeRepositoryInterface $entity_type_repository
+   *
+   * @param EntityTypeBundleInfo $entity_type_bundle_info
+   *
+   * @param EntityFieldManager $entity_field_manager
+   *
+   * @param EntityRepository $entity_repository
    */
-  public function __construct(EntityManagerInterface $entity_manager, SyncNormalizerDecoratorManager $decorator_manager, FileSystemInterface $file_system) {
-    parent::__construct($entity_manager, $decorator_manager);
+  public function __construct(
+    EntityTypeManagerInterface $entity_manager,
+    SyncNormalizerDecoratorManager $decorator_manager,
+    FileSystemInterface $file_system,
+    EntityTypeRepositoryInterface $entity_type_repository,
+    EntityTypeBundleInfo $entity_type_bundle_info,
+    EntityFieldManager $entity_field_manager,
+    EntityRepository $entity_repository) {
+    parent::__construct(
+      $entity_manager,
+      $decorator_manager,
+      $entity_type_repository,
+      $entity_type_bundle_info,
+      $entity_field_manager,
+      $entity_repository
+    );
     $this->fileSystem = $file_system;
   }
 
