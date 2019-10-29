@@ -192,7 +192,13 @@ class ContentSyncCommands extends DrushCommands {
   }
 
   /**
-    * @hook interact @interact-content-label
+   * Select a content directory to work with.
+   *
+   * If there are multiple content directories, we need to get the the 'label'
+   * that matches the key in $content_directories from settings.php. That
+   * determines which directory we are either importing from, or exporting to.
+   *
+   * @hook interact @interact-content-label
    */
   public function interactContentLabel(InputInterface $input, ConsoleOutputInterface $output) {
     global $content_directories;
