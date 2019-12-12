@@ -56,18 +56,44 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
       if (method_exists($storage, 'loadParents')) {
         $parents = $storage->loadParents($entity->id());
         foreach ($parents as $parent_key => $parent) {
-          $normalized_entity['parent'][] = ['target_type' => $entity_type, 'target_uuid' => $parent->uuid()];
-          $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] =  $entity_type . "." . $parent->bundle() . "." . $parent->uuid();
+          if (!$this->parentExistence($parent->uuid(), $normalized_entity)) {
+            $normalized_entity['parent'][] = [
+              'target_type' => $entity_type,
+              'target_uuid' => $parent->uuid(),
+            ];
+            $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] = $entity_type . "." . $parent->bundle() . "." . $parent->uuid();
+          }
         }
-      }elseif (method_exists($entity, 'getParentId')) {
+      }
+      elseif (method_exists($entity, 'getParentId')) {
         $parent = $entity->getParentId();
-        if (($tmp = strstr($parent, ':')) !== false) {
+        if (($tmp = strstr($parent, ':')) !== FALSE) {
           $parent_uuid = substr($tmp, 1);
-          $normalized_entity['parent'][] = ['target_type' => $entity_type, 'target_uuid' => $parent_uuid];
-          $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] =  $entity_type . "." . $entity_type . "." . $parent_uuid;
+          if (!$this->parentExistence($parent_uuid, $normalized_entity)) {
+            $normalized_entity['parent'][] = [
+              'target_type' => $entity_type,
+              'target_uuid' => $parent_uuid,
+            ];
+            $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] = $entity_type . "." . $entity_type . "." . $parent_uuid;
+          }
         }
       }
     }
+  }
+
+  /**
+   * Sees if the parent has not already been added prior to this point.
+   *
+   * @param string $parent_uuid
+   *   The UUID of the parent to check against.
+   * @param array $normalized_entity
+   *   The entity being exported.
+   *
+   * @return bool
+   *   TRUE if it already exists, FALSE if not.
+   */
+  protected function parentExistence($parent_uuid, array $normalized_entity) {
+    return array_search($parent_uuid, array_column($normalized_entity['parent'], 'target_uuid')) !== FALSE;
   }
 
 }
