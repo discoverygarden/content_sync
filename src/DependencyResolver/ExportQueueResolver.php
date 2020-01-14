@@ -24,6 +24,17 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
    */
   protected function depthFirstSearch(array &$visited, array $identifiers, array $normalized_entities) {
     foreach ($identifiers as $identifier) {
+      if (isset($visited[$identifier])) {
+        // Already accounted for; skip.
+        continue;
+      }
+      else {
+        list($entity_type_id, $bundle, $uuid) = explode('.', $identifier);
+        $visited[$identifier] = [
+          'entity_type' => $entity_type_id,
+          'entity_uuid' => $uuid,
+        ];
+      }
 
       // Get a decoded entity.
       $entity = $entity = $this->getEntity($identifier, $normalized_entities);
@@ -46,13 +57,6 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
         }
       }
 
-      if (!isset($visited[$identifier])) {
-        list($entity_type_id, $bundle, $uuid) = explode('.', $identifier);
-        $visited[$identifier] = [
-          'entity_type' => $entity_type_id,
-          'entity_uuid' => $uuid,
-        ];
-      }
 
     }
   }
@@ -84,6 +88,11 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
    *
    * @param array $normalized_entities
    *   Parsed entities to import.
+   * @param array $visited
+   *   Associative array mapping visited identifiers to a value... either the
+   *   identifier proper, or an array containing:
+   *   - entity_type: The type of entity; and,
+   *   - entity_uuid: The UUID of the entity.
    *
    * @return array
    *   Queue to be processed within a batch process.
@@ -93,8 +102,7 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
       $this->depthFirstSearch($visited, [$identifier], $normalized_entities);
     }
 
-    // Reverse the array to adjust it to an array_pop-driven iterator.
-    return array_reverse($visited);
+    return $visited;
   }
 
 }

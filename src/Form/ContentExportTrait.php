@@ -94,6 +94,7 @@ trait ContentExportTrait {
       $context['sandbox']['current_number'] = 0;
       $context['sandbox']['queue'] = $entities;
       $context['sandbox']['max'] = count($entities);
+      $context['exported'] = [];
     }
     $item = array_pop($context['sandbox']['queue']);
 
@@ -176,19 +177,24 @@ trait ContentExportTrait {
               // Invalidate the CS Cache of the entity.
               $cache = \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
 
-              if($serializer_context['include_dependencies']){
+              if ($serializer_context['include_dependencies']) {
                 //Include Dependencies
-                $context['exported'][$name] = $name;
                 if (!isset($context['sandbox']['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
+
                   $queue = $this->contentSyncManager->generateExportQueue( [$name => $exported_entity], $context['exported']);
-                  $context['sandbox']['dependencies'] = array_merge((array) $context['sandbox']['dependencies'],$queue);
+                  $context['sandbox']['dependencies'] = array_merge((array) $context['sandbox']['dependencies'], $queue);
                   unset($queue[$name]);
                   if(!empty($queue)){
                     // Update the batch operations number
                     $context['sandbox']['max'] = $context['sandbox']['max'] + count($queue);
                     $context['sandbox']['queue'] = $queue;
                   }
+                }
+                else {
+                  // XXX: This should typically when happen under the
+                  // ::generateExportQueue() call above; h
+                  $context['exported'][$name] = $name;
                 }
               }
             }
