@@ -94,6 +94,7 @@ trait ContentExportTrait {
       $context['sandbox']['current_number'] = 0;
       $context['sandbox']['queue'] = $entities;
       $context['sandbox']['max'] = count($entities);
+      $context['sandbox']['dependencies'] = [];
       $context['exported'] = [];
     }
     $item = array_pop($context['sandbox']['queue']);
@@ -183,7 +184,7 @@ trait ContentExportTrait {
                   $exported_entity = Yaml::decode($exported_entity);
 
                   $queue = $this->contentSyncManager->generateExportQueue( [$name => $exported_entity], $context['exported']);
-                  $context['sandbox']['dependencies'] = array_merge((array) $context['sandbox']['dependencies'], $queue);
+                  $context['sandbox']['dependencies'] = array_merge($context['sandbox']['dependencies'], $queue);
                   unset($queue[$name]);
                   if(!empty($queue)){
                     // Update the batch operations number
