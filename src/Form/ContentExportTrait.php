@@ -192,8 +192,9 @@ trait ContentExportTrait {
                   }
                 }
                 else {
-                  // XXX: This should typically when happen under the
-                  // ::generateExportQueue() call above; h
+                  // This should typically when happen under the
+                  // ::generateExportQueue() call above, but to cover any other
+                  // case, let's do it here, just in case.
                   $context['exported'][$name] = $name;
                 }
               }
