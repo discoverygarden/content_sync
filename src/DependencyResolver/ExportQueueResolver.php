@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\DependencyResolver;
 
-use Drupal\Core\Serialization\Yaml;
 use Drupal\content_sync\Content\ContentDatabaseStorage;
 
 /**
@@ -29,7 +28,7 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
         continue;
       }
       else {
-        list($entity_type_id, $bundle, $uuid) = explode('.', $identifier);
+        list($entity_type_id, , $uuid) = explode('.', $identifier);
         $visited[$identifier] = [
           'entity_type' => $entity_type_id,
           'entity_uuid' => $uuid,
