@@ -34,8 +34,21 @@ trait ContentImportTrait {
     }
     $serializer_context['content_sync_directory_entities'] =  $serializer_context['content_sync_directory'] . "/entities";
     $serializer_context['content_sync_directory_files'] =  $serializer_context['content_sync_directory'] . "/files";
-    $operations[] = [[$this, 'deleteContent'], [$content_to_delete, $serializer_context]];
-    $operations[] = [[$this, 'syncContent'], [$content_to_sync, $serializer_context]];
+
+    $uuid = \Drupal::service('uuid')->generate();
+    $this->queueDelete = \Drupal::queue("delete:{$uuid}", TRUE);
+    array_map([$this->queueDelete, 'createItem'], $content_to_delete);
+    $this->queueSync = \Drupal::queue("sync:{$uuid}", TRUE);
+    array_map(
+      [$this->queueSync], 'createItem'],
+      $this->contentSyncManager->generateImportQueue(
+        $content_to_sync,
+        $serializer_content['content_sync_directory_entities'] 
+      )
+    )
+
+    $operations[] = [[$this, 'deleteContent'], [$serializer_context]];
+    $operations[] = [[$this, 'syncContent'], [$serializer_context]];
 
     $batch = [
       'title' => $this->t('Synchronizing Content...'),
@@ -44,28 +57,25 @@ trait ContentImportTrait {
       //'finished' => [$this, 'finishImportBatch'],
     ];
     return $batch;
-  }
+  } }
 
   /**
    * Processes the content import to be updated or created batch and persists the importer.
    *
-   * @param $content_to_sync
    * @param string $serializer_context
    * @param array $context
    *   The batch context.
    */
-  public function syncContent(array $content_to_sync, $serializer_context = [], &$context) {
+  public function syncContent($serializer_context = [], &$context) {
     if (empty($context['sandbox'])) {
-      $directory = $serializer_context['content_sync_directory_entities'];
-      $queue = $this->contentSyncManager->generateImportQueue($content_to_sync, $directory);
       $context['sandbox']['progress'] = 0;
-      $context['sandbox']['queue'] = $queue;
-      $context['sandbox']['directory'] = $directory;
-      $context['sandbox']['max'] = count($queue);
+      $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
+      $context['sandbox']['max'] = $this->queueSync->numberOfItems();
     }
-    if (!empty($context['sandbox']['queue'])) {
+    $queue_item = $this->queueSync->claimItem();
+    if ($queue_item) {
       $error = FALSE;
-      $item = array_pop($context['sandbox']['queue']);
+      $item = $queue_item->data;
       $decoded_entity = $item['decoded_entity'];
       $entity_type_id = $item['entity_type_id'];
       $entity = $this->contentSyncManager->getContentImporter()
@@ -101,6 +111,7 @@ trait ContentImportTrait {
       }
       // We need to count the progress anyway even if an error has occured.
       $context['sandbox']['progress']++;
+      $this->queueSync->deleteItem($queue_item);
     }
     $context['finished'] = $context['sandbox']['max'] > 0
                         && $context['sandbox']['progress'] < $context['sandbox']['max'] ?
@@ -110,20 +121,18 @@ trait ContentImportTrait {
   /**
    * Processes the content import to be deleted or created batch and persists the importer.
    *
-   * @param $content_to_delete
    * @param string $serializer_context
    * @param array $context
    *   The batch context.
    */
-  public function deleteContent(array $content_to_delete, $serializer_context = [], &$context) {
+  public function deleteContent($serializer_context = [], &$context) {
     if (empty($context['sandbox'])) {
-      $directory = $serializer_context['content_sync_directory_entities'];
       $context['sandbox']['progress'] = 0;
-      $context['sandbox']['queue'] = $content_to_delete;
-      $context['sandbox']['directory'] = $directory;
-      $context['sandbox']['max'] = count($content_to_delete);
+      $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
+      $context['sandbox']['max'] = $this->queueDelete->numberOfItems();
     }
-    if (!empty($context['sandbox']['queue'])) {
+    $queue_item = $this->queueDelete->claimItem()
+    if ($queue_item) {
       $error = TRUE;
       $item = array_pop($context['sandbox']['queue']);
       $ids = explode('.', $item);
@@ -170,6 +179,7 @@ trait ContentImportTrait {
           '@uuid' => $uuid,
         ]);
       }
+      $this->queueDelete->deleteItem($queue_item);
     }
     $context['results'][] = TRUE;
     $context['sandbox']['progress']++;
