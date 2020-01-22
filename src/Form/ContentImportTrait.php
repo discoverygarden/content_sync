@@ -40,12 +40,12 @@ trait ContentImportTrait {
     array_map([$this->queueDelete, 'createItem'], $content_to_delete);
     $this->queueSync = \Drupal::queue("sync:{$uuid}", TRUE);
     array_map(
-      [$this->queueSync], 'createItem'],
+      [$this->queueSync, 'createItem'],
       $this->contentSyncManager->generateImportQueue(
         $content_to_sync,
-        $serializer_content['content_sync_directory_entities'] 
+        $serializer_content['content_sync_directory_entities']
       )
-    )
+    );
 
     $operations[] = [[$this, 'deleteContent'], [$serializer_context]];
     $operations[] = [[$this, 'syncContent'], [$serializer_context]];
@@ -57,7 +57,7 @@ trait ContentImportTrait {
       //'finished' => [$this, 'finishImportBatch'],
     ];
     return $batch;
-  } }
+  }
 
   /**
    * Processes the content import to be updated or created batch and persists the importer.
@@ -131,7 +131,7 @@ trait ContentImportTrait {
       $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
       $context['sandbox']['max'] = $this->queueDelete->numberOfItems();
     }
-    $queue_item = $this->queueDelete->claimItem()
+    $queue_item = $this->queueDelete->claimItem();
     if ($queue_item) {
       $error = TRUE;
       $item = array_pop($context['sandbox']['queue']);
