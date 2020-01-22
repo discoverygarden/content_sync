@@ -134,7 +134,7 @@ trait ContentImportTrait {
     $queue_item = $this->queueDelete->claimItem();
     if ($queue_item) {
       $error = TRUE;
-      $item = array_pop($context['sandbox']['queue']);
+      $item = $queue_item->data;
       $ids = explode('.', $item);
       list($entity_type_id, $bundle, $uuid) = $ids;
 
