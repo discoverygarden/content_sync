@@ -36,15 +36,16 @@ trait ContentImportTrait {
     $serializer_context['content_sync_directory_files'] =  $serializer_context['content_sync_directory'] . "/files";
 
     $uuid = \Drupal::service('uuid')->generate();
+
     $this->queueDelete = \Drupal::queue("delete:{$uuid}", TRUE);
-    array_map([$this->queueDelete, 'createItem'], $content_to_delete);
+    $to_delete = array_map([$this->queueDelete, 'createItem'], array_reverse($content_to_delete));
     $this->queueSync = \Drupal::queue("sync:{$uuid}", TRUE);
-    array_map(
+    $to_sync = array_map(
       [$this->queueSync, 'createItem'],
-      $this->contentSyncManager->generateImportQueue(
+      array_reverse($this->contentSyncManager->generateImportQueue(
         $content_to_sync,
-        $serializer_content['content_sync_directory_entities']
-      )
+        $serializer_context['content_sync_directory_entities']
+      ))
     );
 
     $operations[] = [[$this, 'deleteContent'], [$serializer_context]];
@@ -72,7 +73,9 @@ trait ContentImportTrait {
       $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
       $context['sandbox']['max'] = $this->queueSync->numberOfItems();
     }
+
     $queue_item = $this->queueSync->claimItem();
+
     if ($queue_item) {
       $error = FALSE;
       $item = $queue_item->data;
