@@ -38,9 +38,9 @@ trait ContentImportTrait {
     $uuid = \Drupal::service('uuid')->generate();
 
     $this->queueDelete = \Drupal::queue("delete:{$uuid}", TRUE);
-    $to_delete = array_map([$this->queueDelete, 'createItem'], array_reverse($content_to_delete));
+    array_map([$this->queueDelete, 'createItem'], array_reverse($content_to_delete));
     $this->queueSync = \Drupal::queue("sync:{$uuid}", TRUE);
-    $to_sync = array_map(
+    array_map(
       [$this->queueSync, 'createItem'],
       array_reverse($this->contentSyncManager->generateImportQueue(
         $content_to_sync,
