@@ -235,11 +235,11 @@ trait ContentExportTrait {
                 if (!isset($context['sandbox']['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
 
-                  $queue = $this->contentSyncManager->generateExportQueue( [$name => $exported_entity], $context['sandbox']['exported']);
+                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported']);
                   $new_deps = array_diff_key($queue, $context['sandbox']['dependencies']);
                   $context['sandbox']['dependencies'] += $new_deps;
                   unset($new_deps[$name]);
-                  if(!empty($new_deps)){
+                  if (!empty($new_deps)) {
                     // Update the batch queue.
                     array_map([$this->exportQueue, 'createItem'], $new_deps);
                     $context['sandbox']['max'] = $context['sandbox']['max'] + count($new_deps);
