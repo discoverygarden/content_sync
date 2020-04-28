@@ -86,7 +86,10 @@ trait ContentExportTrait {
     //Set batch operations by entity type/bundle
     $operations = [];
     $operations[] = [[$this, 'generateSiteUUIDFile'], [$serializer_context]];
-    $operations[] = [[$this, 'processContentExportFiles'], [$serializer_context]];
+    $operations[] = [
+      [$this, 'processContentExportFiles'],
+      [$serializer_context],
+    ];
 
     //Set Batch
     $batch = [
