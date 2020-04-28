@@ -11,11 +11,38 @@ use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\ContentEntityType;
+use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 
 /**
  * Defines the content import form.
  */
 trait ContentImportTrait {
+
+  use DependencySerializationTrait;
+
+  /**
+   * Define the delete queue prefix.
+   *
+   * XXX: Would be a constant; however, traits are not allowed to define them.
+   *
+   * @return string
+   *   The queue prefix to use.
+   */
+  public static function getDeleteQueuePrefix() {
+    return 'content_sync_delete';
+   }
+
+  /**
+   * Define the sync queue prefix.
+   *
+   * XXX: Would be a constant; however, traits are not allowed to define them.
+   *
+   * @return string
+   *   The queue prefix to use.
+   */
+  public static function getSyncQueuePrefix() {
+    return 'content_sync_sync';
+  }
 
   /**
    * @param $content_to_sync
@@ -37,9 +64,9 @@ trait ContentImportTrait {
 
     $uuid = \Drupal::service('uuid')->generate();
 
-    $this->queueDelete = \Drupal::queue("delete:{$uuid}", TRUE);
+    $this->queueDelete = \Drupal::queue(static::getDeleteQueuePrefix() . ":{$uuid}", TRUE);
     array_map([$this->queueDelete, 'createItem'], array_reverse($content_to_delete));
-    $this->queueSync = \Drupal::queue("sync:{$uuid}", TRUE);
+    $this->queueSync = \Drupal::queue(static::getSyncQueuePrefix() . ":{$uuid}", TRUE);
     array_map(
       [$this->queueSync, 'createItem'],
       array_reverse($this->contentSyncManager->generateImportQueue(
