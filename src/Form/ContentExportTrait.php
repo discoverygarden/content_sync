@@ -25,16 +25,21 @@ trait ContentExportTrait {
    * @return string
    *   The queue prefix to use.
    */
-  public static function getExportQueuePrefix() { return 'content_sync_export'; }
+  public static function getExportQueuePrefix() {
+    return 'content_sync_export';
+  }
 
   /**
    * @var ArchiveTar
    */
   protected $archiver;
 
+  /**
+   * The queue in which to keep the items to export prior to processing.
+   *
+   * @var \Drupal\Core\Queue\QueueInterface
+   */
   protected $exportQueue;
-
-  protected $exportSerializerContext;
 
   /**
    * @param $entities

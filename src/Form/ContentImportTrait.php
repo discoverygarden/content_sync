@@ -30,7 +30,7 @@ trait ContentImportTrait {
    */
   public static function getDeleteQueuePrefix() {
     return 'content_sync_delete';
-   }
+  }
 
   /**
    * Define the sync queue prefix.
