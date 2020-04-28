@@ -107,12 +107,27 @@ trait ContentExportTrait {
   }
 
   /**
+   * Helper; split an identifier into its parts.
+   *
+   * @param string $name
+   *   The identifier to split; something like: "entity_type.bundle.uuid".
+   *
+   * @return string[]
+   *   An associative array containing:
+   *   - entity_type: The type of entity.
+   *   - entity_uuid: The UUID of the identified entity.
+   */
+  protected static function exportSplitName($name) {
+    list($entity_type, , $entity_uuid) = explode('.', $name);
+    return compact('entity_type', 'entity_uuid');
+  }
+
+  /**
    * Processes the content archive export batch
    *
-   * @param $files
-   *   The batch content to persist.
-   * @param $serializer_context
-   * @param array $context
+   * @param array $serializer_context
+   *   The serializer context.
+   * @param array|DrushBatchContext $context
    *   The batch context.
    */
   public function processContentExportFiles($serializer_context = [], &$context) {
@@ -131,6 +146,10 @@ trait ContentExportTrait {
     }
 
     $item = $queue_item->data;
+
+    if (!is_array($item)) {
+      $item = static::exportSplitName($item);
+    }
 
     // Get submitted values
     $entity_type = $item['entity_type'];
@@ -228,11 +247,7 @@ trait ContentExportTrait {
                 }
               }
 
-              list($entity_type_id, , $uuid) = explode('.', $name);
-              $context['sandbox']['exported'][$name] = [
-                'entity_type' => $entity_type_id,
-                'entity_uuid' => $uuid,
-              ];
+              $context['sandbox']['exported'][$name] = $name;
             }
           }
 

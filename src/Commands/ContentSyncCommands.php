@@ -420,11 +420,7 @@ class ContentSyncCommands extends DrushCommands {
             foreach ($contents as $content) {
               $data = $storage_comparer->getSourceStorage($collection)->read($content);
               $storage_comparer->getTargetStorage($collection)->write($content, $data);
-              $entity = explode('.', $content);
-              $entities_list[] = [
-                'entity_type' => $entity[0],
-                'entity_uuid' => $entity[2],
-              ];
+              $entities_list[] = $content;
             }
             break;
         }

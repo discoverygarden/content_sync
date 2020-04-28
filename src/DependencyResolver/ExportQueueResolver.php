@@ -28,15 +28,11 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
         continue;
       }
       else {
-        list($entity_type_id, , $uuid) = explode('.', $identifier);
-        $visited[$identifier] = [
-          'entity_type' => $entity_type_id,
-          'entity_uuid' => $uuid,
-        ];
+        $visited[$identifier] = $identifier;
       }
 
       // Get a decoded entity.
-      $entity = $entity = $this->getEntity($identifier, $normalized_entities);
+      $entity = $this->getEntity($identifier, $normalized_entities);
 
       // Process dependencies first.
       if (!empty($entity['_content_sync']['entity_dependencies'])) {
