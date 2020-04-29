@@ -11,14 +11,11 @@ use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\ContentEntityType;
-use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 
 /**
  * Defines the content import form.
  */
 trait ContentImportTrait {
-
-  use DependencySerializationTrait;
 
   /**
    * Define the delete queue prefix.

@@ -8,14 +8,11 @@ use Drupal\content_sync\Content\ContentDatabaseStorage;
 use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\DependencyInjection\DependencySerializationTrait;
 
 /**
  * Defines the content export form.
  */
 trait ContentExportTrait {
-
-  use DependencySerializationTrait;
 
   /**
    * Define the export queue prefix.
