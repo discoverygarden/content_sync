@@ -7,7 +7,9 @@
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Url;
-
+use Drupal\content_sync\Form\ContentExportTrait;
+use Drupal\content_sync\Form\ContentImportTrait;
+use Drupal\Core\Queue\DatabaseQueue;
 
 /**
  * Implements hook_help().
@@ -253,4 +255,30 @@ function content_sync_entity_delete(Drupal\Core\Entity\EntityInterface $entity){
     // Invalidate the CS Cache of the entity.
     $cache = \Drupal::cache('content')->invalidate($entity_type.".".$entity_bundle.":".$name);
   }
+}
+
+/**
+ * Implements hook_cron().
+ */
+function content_sync_cron() {
+
+  // Adapted from the drupal_batch queue garbage collection to clean up our
+  // multiple queues.
+  // @see DatabaseQueue::garbageCollection()
+  $prefixes = [
+    ContentExportTrait::getExportQueuePrefix(),
+    ContentImportTrait::getDeleteQueuePrefix(),
+    ContentImportTrait::getSyncQueuePrefix(),
+  ];
+
+  $conn = \Drupal::database();
+  $query = $conn->delete(DatabaseQueue::TABLE_NAME)
+    ->condition('created', REQUEST_TIME - 864000, '<');
+
+  $or = $query->orConditionGroup();
+  foreach ($prefixes as $prefix) {
+    $or->condition('name', $conn->escapeLike($prefix) . '%', 'LIKE');
+  }
+  $query->condition($or)->execute();
+
 }

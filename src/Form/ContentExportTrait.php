@@ -15,9 +15,28 @@ use Drupal\Core\File\FileSystemInterface;
 trait ContentExportTrait {
 
   /**
+   * Define the export queue prefix.
+   *
+   * XXX: Would be a constant; however, traits are not allowed to define them.
+   *
+   * @return string
+   *   The queue prefix to use.
+   */
+  public static function getExportQueuePrefix() {
+    return 'content_sync_export';
+  }
+
+  /**
    * @var ArchiveTar
    */
   protected $archiver;
+
+  /**
+   * The queue in which to keep the items to export prior to processing.
+   *
+   * @var \Drupal\Core\Queue\QueueInterface
+   */
+  protected $exportQueue;
 
   /**
    * @param $entities
@@ -57,12 +76,18 @@ trait ContentExportTrait {
       unset($serializer_context['include_files']);
     }
 
+    $uuid = \Drupal::service('uuid')->generate();
+    $this->exportQueue = \Drupal::queue(static::getExportQueuePrefix() . ":{$uuid}", TRUE);
+    array_map([$this->exportQueue, 'createItem'], $entities);
+
     //Set batch operations by entity type/bundle
     $operations = [];
-    $operations[] = [[$this, 'generateSiteUUIDFile'], [0 => $serializer_context]];
-    foreach ($entities as $entity) {
-      $operations[] = [[$this, 'processContentExportFiles'], [[$entity], $serializer_context]];
-    }
+    $operations[] = [[$this, 'generateSiteUUIDFile'], [$serializer_context]];
+    $operations[] = [
+      [$this, 'processContentExportFiles'],
+      [$serializer_context],
+    ];
+
     //Set Batch
     $batch = [
       'operations' => $operations,
@@ -79,25 +104,49 @@ trait ContentExportTrait {
   }
 
   /**
+   * Helper; split an identifier into its parts.
+   *
+   * @param string $name
+   *   The identifier to split; something like: "entity_type.bundle.uuid".
+   *
+   * @return string[]
+   *   An associative array containing:
+   *   - entity_type: The type of entity.
+   *   - entity_uuid: The UUID of the identified entity.
+   */
+  protected static function exportSplitName($name) {
+    list($entity_type, , $entity_uuid) = explode('.', $name);
+    return compact('entity_type', 'entity_uuid');
+  }
+
+  /**
    * Processes the content archive export batch
    *
-   * @param $files
-   *   The batch content to persist.
-   * @param $serializer_context
-   * @param array $context
+   * @param array $serializer_context
+   *   The serializer context.
+   * @param array|DrushBatchContext $context
    *   The batch context.
    */
-  public function processContentExportFiles($entities, $serializer_context = [], &$context) {
+  public function processContentExportFiles($serializer_context = [], &$context) {
     //Initialize Batch
-    if (empty($context['sandbox'])) {
+    if (!isset($context['sandbox']['progress'])) {
       $context['sandbox']['progress'] = 0;
-      $context['sandbox']['current_number'] = 0;
-      $context['sandbox']['queue'] = $entities;
-      $context['sandbox']['max'] = count($entities);
+      $context['sandbox']['max'] = $this->exportQueue->numberOfItems();
       $context['sandbox']['dependencies'] = [];
-      $context['exported'] = [];
+      $context['sandbox']['exported'] = [];
     }
-    $item = array_pop($context['sandbox']['queue']);
+
+    $queue_item = $this->exportQueue->claimItem();
+    if (!$queue_item) {
+      $context['message'] = 'Nothing in queue...';
+      return;
+    }
+
+    $item = $queue_item->data;
+
+    if (!is_array($item)) {
+      $item = static::exportSplitName($item);
+    }
 
     // Get submitted values
     $entity_type = $item['entity_type'];
@@ -129,7 +178,7 @@ trait ContentExportTrait {
         $uuid = $entity->uuid();
         $name = $entity_type . "." .  $bundle . "." . $uuid;
 
-        if (!isset($context['exported'][$name])) {
+        if (!isset($context['sandbox']['exported'][$name])) {
 
           // Generate the YAML file.
           $exported_entity = $this->getContentExporter()
@@ -183,33 +232,34 @@ trait ContentExportTrait {
                 if (!isset($context['sandbox']['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
 
-                  $queue = $this->contentSyncManager->generateExportQueue( [$name => $exported_entity], $context['exported']);
-                  $context['sandbox']['dependencies'] = array_merge($context['sandbox']['dependencies'], $queue);
-                  unset($queue[$name]);
-                  if(!empty($queue)){
-                    // Update the batch operations number
-                    $context['sandbox']['max'] = $context['sandbox']['max'] + count($queue);
-                    $context['sandbox']['queue'] = $queue;
+                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported']);
+                  $new_deps = array_diff_key($queue, $context['sandbox']['dependencies']);
+                  $context['sandbox']['dependencies'] += $new_deps;
+                  unset($new_deps[$name]);
+                  if (!empty($new_deps)) {
+                    // Update the batch queue.
+                    array_map([$this->exportQueue, 'createItem'], $new_deps);
+                    $context['sandbox']['max'] = $context['sandbox']['max'] + count($new_deps);
                   }
                 }
-                else {
-                  // This should typically when happen under the
-                  // ::generateExportQueue() call above, but to cover any other
-                  // case, let's do it here, just in case.
-                  $context['exported'][$name] = $name;
-                }
               }
+
+              $context['sandbox']['exported'][$name] = $name;
             }
           }
+
         }
       }
     }
-    $context['message'] = $name;
-    $context['results'][] = $name;
+
+    $this->exportQueue->deleteItem($queue_item);
+
     $context['sandbox']['progress']++;
+    $context['results'][] = $name;
+    $context['message'] = "$name {$context['sandbox']['progress']}/{$context['sandbox']['max']}";
 
     $context['finished'] = $context['sandbox']['max'] > 0
-                        && $context['sandbox']['progress'] < $context['sandbox']['max'] ?
+                           && $context['sandbox']['progress'] < $context['sandbox']['max'] ?
                            $context['sandbox']['progress'] / $context['sandbox']['max'] : 1;
   }
 
