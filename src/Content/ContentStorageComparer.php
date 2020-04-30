@@ -77,6 +77,10 @@ class ContentStorageComparer extends StorageComparer {
 
   /**
    * {@inheritdoc}
+   *
+   * Essentially, copypasta of StorageComparer::getAndSortConfigData() with
+   * the two StorageInterface::readMultiple() calls moved, so they can be
+   * avoided.
    */
   protected function getAndSortConfigData($collection) {
     $source_storage = $this
