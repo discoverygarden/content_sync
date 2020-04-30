@@ -417,8 +417,6 @@ class ContentSyncCommands extends DrushCommands {
           case 'update':
           case 'create':
             foreach ($contents as $content) {
-              $data = $storage_comparer->getSourceStorage($collection)->read($content);
-              $storage_comparer->getTargetStorage($collection)->write($content, $data);
               $this->getExportQueue()->createItem($content);
             }
             break;
