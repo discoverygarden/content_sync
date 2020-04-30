@@ -405,7 +405,6 @@ class ContentSyncCommands extends DrushCommands {
     }
 
     //Process the Export.
-    $entities_list = [];
     foreach ($change_list as $collection => $changes) {
       //$storage_comparer->getTargetStorage($collection)->deleteAll();
       foreach ($changes as $change => $contents) {
@@ -420,25 +419,25 @@ class ContentSyncCommands extends DrushCommands {
             foreach ($contents as $content) {
               $data = $storage_comparer->getSourceStorage($collection)->read($content);
               $storage_comparer->getTargetStorage($collection)->write($content, $data);
-              $entities_list[] = $content;
+              $this->getExportQueue()->createItem($content);
             }
             break;
         }
       }
     }
+    unset($change_list);
+
+
     // Files options
     $include_files = self::processFilesOption($options);
     // Set the Export Batch
-    if (!empty($entities_list)) {
-      $batch = $this->generateExportBatch(
-        $entities_list,
-        [
-          'export_type' => 'folder',
-          'include_files' => $include_files,
-          'include_dependencies' => $options['include-dependencies'],
-          'content_sync_directory' => $destination_dir,
-        ]
-      );
+    if ($this->getExportQueue()->numberOfItems() > 0) {
+      $batch = $this->generateExportBatch([
+        'export_type' => 'folder',
+        'include_files' => $include_files,
+        'include_dependencies' => $options['include-dependencies'],
+        'content_sync_directory' => $destination_dir,
+      ]);
       batch_set($batch);
       drush_backend_batch_process();
     }
