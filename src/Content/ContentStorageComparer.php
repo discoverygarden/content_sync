@@ -118,18 +118,4 @@ class ContentStorageComparer extends StorageComparer {
     }
   }
 
-  /**
-   * Helper, so we can avoid serializing things when we know we won't want it.
-   */
-  public function partialReset() {
-    $this->sourceNames = [];
-    $this->targetNames = [];
-    $this->sourceCacheStorage->reset();
-    $this->targetCacheStorage->reset();
-    $this->changelist = [
-      StorageInterface::DEFAULT_COLLECTION => $this->getEmptyChangeList()
-    ];
-    return $this;
-  }
-
 }
