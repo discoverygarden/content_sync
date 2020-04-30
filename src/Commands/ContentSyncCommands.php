@@ -427,7 +427,6 @@ class ContentSyncCommands extends DrushCommands {
     }
     unset($change_list);
 
-
     // Files options
     $include_files = self::processFilesOption($options);
     // Set the Export Batch
