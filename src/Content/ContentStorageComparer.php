@@ -2,9 +2,9 @@
 
 namespace Drupal\content_sync\Content;
 
-use Drupal\Core\Config\StorageComparer as StorageComparer;
+use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\StorageInterface;
-
+use Drupal\Core\Config\Entity\ConfigDependencyManager;
 
 /**
  * Extends config storage comparer.
@@ -74,4 +74,44 @@ class ContentStorageComparer extends StorageComparer {
     }
     return false;
   }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getAndSortConfigData($collection) {
+    $source_storage = $this
+      ->getSourceStorage($collection);
+    $target_storage = $this
+      ->getTargetStorage($collection);
+    $target_names = $target_storage
+      ->listAll();
+    $source_names = $source_storage
+      ->listAll();
+
+    // If the collection only supports simple configuration do not use
+    // configuration dependencies.
+    if ($collection == StorageInterface::DEFAULT_COLLECTION) {
+      // XXX: Upstream, this exists outside of this if branch; however, that
+      // unnecessarily leads to massive memory usage.
+      // Prime the static caches by reading all the configuration in the source
+      // and target storages.
+      $target_data = $target_storage
+        ->readMultiple($target_names);
+      $source_data = $source_storage
+        ->readMultiple($source_names);
+
+      $dependency_manager = new ConfigDependencyManager();
+      $this->targetNames[$collection] = $dependency_manager
+        ->setData($target_data)
+        ->sortAll();
+      $this->sourceNames[$collection] = $dependency_manager
+        ->setData($source_data)
+        ->sortAll();
+    }
+    else {
+      $this->targetNames[$collection] = $target_names;
+      $this->sourceNames[$collection] = $source_names;
+    }
+  }
+
 }
