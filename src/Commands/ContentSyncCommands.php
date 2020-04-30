@@ -429,7 +429,7 @@ class ContentSyncCommands extends DrushCommands {
     $include_files = self::processFilesOption($options);
     // Set the Export Batch
     if ($this->getExportQueue()->numberOfItems() > 0) {
-      $batch = $this->generateExportBatch([
+      $batch = $this->generateExportBatch([], [
         'export_type' => 'folder',
         'include_files' => $include_files,
         'include_dependencies' => $options['include-dependencies'],

@@ -74,7 +74,7 @@ trait ContentExportTrait {
    *
    * @return array
    */
-  public function generateExportBatch($serializer_context = []) {
+  public function generateExportBatch($entities = [], $serializer_context = []) {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     }
@@ -92,6 +92,9 @@ trait ContentExportTrait {
     //Set batch operations by entity type/bundle
     $operations = [];
     $operations[] = [[$this, 'generateSiteUUIDFile'], [$serializer_context]];
+    foreach ($entities as $entity) {
+      $this->getExportQueue()->createItem($entity);
+    }
     $operations[] = [
       [$this, 'processContentExportFiles'],
       [$serializer_context],
