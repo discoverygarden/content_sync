@@ -2,14 +2,34 @@
 
 namespace Drupal\content_sync\Content;
 
+use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\Entity\ConfigDependencyManager;
+use Drupal\Core\Config\CachedStorage;
+use Drupal\Core\Cache\NullBackend;
 
 /**
  * Extends config storage comparer.
  */
 class ContentStorageComparer extends StorageComparer {
+
+  /**
+   * Constructor.
+   *
+   * Largely copypasta of the parent, with the exception of rolling
+   * "NullBackend" caches instead of "MemoryBackend".
+   */
+  public function __construct(StorageInterface $source_storage, StorageInterface $target_storage, ConfigManagerInterface $config_manager) {
+
+    $this->sourceCacheStorage = new NullBackend(__CLASS__ . '::source');
+    $this->sourceStorage = new CachedStorage($source_storage, $this->sourceCacheStorage);
+    $this->targetCacheStorage = new NullBackend(__CLASS__ . '::target');
+    $this->targetStorage = new CachedStorage($target_storage, $this->targetCacheStorage);
+    $this->configManager = $config_manager;
+    $this->changelist[StorageInterface::DEFAULT_COLLECTION] = $this
+      ->getEmptyChangelist();
+  }
 
   /**
    * {@inheritdoc}
@@ -116,6 +136,16 @@ class ContentStorageComparer extends StorageComparer {
       $this->targetNames[$collection] = $target_names;
       $this->sourceNames[$collection] = $source_names;
     }
+  }
+
+  /**
+   * Clear our changelist for the given collection.
+   *
+   * @param string $collection
+   *   The name of the collection to clear.
+   */
+  public function resetCollectionChangelist($collection) {
+    $this->changelist[$collection] = $this->getEmptyChangelist();
   }
 
 }

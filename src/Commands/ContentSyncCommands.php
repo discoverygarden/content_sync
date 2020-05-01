@@ -386,6 +386,7 @@ class ContentSyncCommands extends DrushCommands {
       }else{
         $change_list[$collection] = $storage_comparer->getChangelist(NULL, $collection);
       }
+      $storage_comparer->resetCollectionChangelist($collection);
       $change_list = array_map('array_filter', $change_list);
       $change_list = array_filter($change_list);
     }
@@ -424,6 +425,7 @@ class ContentSyncCommands extends DrushCommands {
       }
     }
     unset($change_list);
+    unset($storage_comparer);
 
     // Files options
     $include_files = self::processFilesOption($options);
