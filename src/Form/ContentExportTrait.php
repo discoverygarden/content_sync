@@ -42,6 +42,7 @@ trait ContentExportTrait {
    * Lazy accessor for the export queue.
    *
    * @return \Drupal\Core\Queue\QueueInterface
+   *   The export queue.
    */
   public function getExportQueue() {
     if (!isset($this->exportQueue)) {
