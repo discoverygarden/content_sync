@@ -39,6 +39,20 @@ trait ContentExportTrait {
   protected $exportQueue;
 
   /**
+   * Lazy accessor for the export queue.
+   *
+   * @return \Drupal\Core\Queue\QueueInterface
+   *   The export queue.
+   */
+  public function getExportQueue() {
+    if (!isset($this->exportQueue)) {
+      $uuid = \Drupal::service('uuid')->generate();
+      $this->exportQueue = \Drupal::queue(static::getExportQueuePrefix() . ":{$uuid}", TRUE);
+    }
+    return $this->exportQueue;
+  }
+
+  /**
    * @param $entities
    *
    * @param $serializer_context
@@ -61,7 +75,7 @@ trait ContentExportTrait {
    *
    * @return array
    */
-  public function generateExportBatch($entities, $serializer_context = []) {
+  public function generateExportBatch($entities = [], $serializer_context = []) {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     }
@@ -76,13 +90,12 @@ trait ContentExportTrait {
       unset($serializer_context['include_files']);
     }
 
-    $uuid = \Drupal::service('uuid')->generate();
-    $this->exportQueue = \Drupal::queue(static::getExportQueuePrefix() . ":{$uuid}", TRUE);
-    array_map([$this->exportQueue, 'createItem'], $entities);
-
     //Set batch operations by entity type/bundle
     $operations = [];
     $operations[] = [[$this, 'generateSiteUUIDFile'], [$serializer_context]];
+    foreach ($entities as $entity) {
+      $this->getExportQueue()->createItem($entity);
+    }
     $operations[] = [
       [$this, 'processContentExportFiles'],
       [$serializer_context],

@@ -3,7 +3,7 @@
 namespace Drupal\content_sync\Content;
 
 use Drupal\content_sync\ContentSyncManagerInterface;
-
+use Drupal\Core\Config\FileStorage;
 
 /**
  * Provides a factory for creating content file storage objects.
@@ -19,9 +19,7 @@ class ContentFileStorageFactory {
    * no longer creates an active directory.
    */
   public static function getActive() {
-    // Load the class from a different namespace.
-    $class = "Drupal\\Core\\Config\\FileStorage";
-    return new $class(content_sync_get_content_directory(CONFIG_ACTIVE_DIRECTORY)."/entities");
+    return new FileStorage(content_sync_get_content_directory(CONFIG_ACTIVE_DIRECTORY)."/entities");
   }
 
   /**
@@ -30,8 +28,6 @@ class ContentFileStorageFactory {
    * @return \Drupal\Core\Config\FileStorage FileStorage
    */
   public static function getSync() {
-    // Load the class from a different namespace.
-    $class = "Drupal\\Core\\Config\\FileStorage";
-    return new $class(content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY)."/entities");
+    return new FileStorage(content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY)."/entities");
   }
 }
