@@ -4,6 +4,7 @@
  * Allows site administrators to modify content.
  */
 
+use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\ContentEntityType;
 use Drupal\Core\Url;
@@ -203,28 +204,39 @@ function content_sync_get_content_directory($type) {
  * Keep the content snapshot table synced
  */
 function content_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity){
-  // Get submitted values
-  $entity_type = $entity->getEntityTypeId();
-  $entity_bundle = $entity->bundle();
-  $entity_id = $entity->id();
+  $renderer = \Drupal::service('renderer');
+  $context = new RenderContext();
 
-  //Validate that it is a Content Entity
-  $entityTypeManager = \Drupal::entityTypeManager();
-  $instances = $entityTypeManager->getDefinitions();
-  if ( isset($instances[$entity_type]) && $instances[$entity_type] instanceof ContentEntityType ) {
-    $entity = \Drupal::entityTypeManager()->getStorage($entity_type)
-      ->load($entity_id);
-    // Generate the YAML file.
-    $serializer_context = [];
-    $exported_entity = \Drupal::service('content_sync.exporter')->exportEntity($entity, $serializer_context);
-    // Create the name
-    $name = $entity_type . "." . $entity_bundle . "." . $entity->uuid();
-    //Insert/Update Data
-    $activeStorage = new Drupal\content_sync\Content\ContentDatabaseStorage(\Drupal::database(), 'cs_db_snapshot');
-    $activeStorage->cs_write($name, \Drupal\Core\Serialization\Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
-    // Invalidate the CS Cache of the entity.
-    $cache = \Drupal::cache('content')->invalidate($entity_type.".".$entity_bundle.":".$name);
-  }
+  // XXX: Surpress leaking cached metadata here as its not being used in the
+  // response whatsoever. The normalizers inside of this call generated
+  // cacheable metadata but there is no needed context as this is running on
+  // an entity update and has nothing to do with front-end rendering.
+  $renderer->executeInRenderContext($context, function() use ($renderer, $entity) {
+    // Get submitted values
+    $entity_type = $entity->getEntityTypeId();
+    $entity_bundle = $entity->bundle();
+    $entity_id = $entity->id();
+
+    //Validate that it is a Content Entity
+    $entityTypeManager = \Drupal::entityTypeManager();
+    $instances = $entityTypeManager->getDefinitions();
+    if (isset($instances[$entity_type]) && $instances[$entity_type] instanceof ContentEntityType) {
+      $entity = \Drupal::entityTypeManager()->getStorage($entity_type)
+        ->load($entity_id);
+      // Generate the YAML file.
+      $serializer_context = [];
+      $exported_entity = \Drupal::service('content_sync.exporter')
+        ->exportEntity($entity, $serializer_context);
+      // Create the name
+      $name = $entity_type . "." . $entity_bundle . "." . $entity->uuid();
+      //Insert/Update Data
+      $activeStorage = new Drupal\content_sync\Content\ContentDatabaseStorage(\Drupal::database(), 'cs_db_snapshot');
+      $activeStorage->cs_write($name, \Drupal\Core\Serialization\Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
+      // Invalidate the CS Cache of the entity.
+      $cache = \Drupal::cache('content')
+        ->invalidate($entity_type . "." . $entity_bundle . ":" . $name);
+    }
+  });
 }
 /**
  * hook_entity_insert
