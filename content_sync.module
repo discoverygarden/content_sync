@@ -207,7 +207,7 @@ function content_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity){
   $renderer = \Drupal::service('renderer');
   $context = new RenderContext();
 
-  // XXX: Surpress leaking cached metadata here as its not being used in the
+  // XXX: Suppress leaking cached metadata here as its not being used in the
   // response whatsoever. The normalizers inside of this call generated
   // cacheable metadata but there is no needed context as this is running on
   // an entity update and has nothing to do with front-end rendering.
