@@ -8,9 +8,9 @@ use Drupal\content_sync\Plugin\SyncNormalizerDecoratorTrait;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityTypeRepositoryInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfo;
-use Drupal\Core\Entity\EntityFieldManager;
-use Drupal\Core\Entity\EntityRepository;
+use Drupal\Core\Entity\EntityFieldManagerInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\RevisionableInterface;
 use Drupal\Core\Url;
 use Drupal\serialization\Normalizer\ContentEntityNormalizer as BaseContentEntityNormalizer;
@@ -28,54 +28,39 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   protected $decoratorManager;
 
   /**
-   * @var EntityTypeRepositoryInterface
-   */
-  protected $entityTypeRepository;
-
-  /**
-   * @var EntityTypeBundleInfo
+   * The entity bundle info.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeBundleInfoInterface
    */
   protected $entityTypeBundleInfo;
 
   /**
-   * @var EntityFieldManager
-   */
-  protected $entityFieldManager;
-
-  /**
-   * @var EntityRepository
+   * The entity repository.
+   *
+   * @var \Drupal\Core\Entity\EntityRepositoryInterface
    */
   protected $entityRepository;
 
   /**
    * Constructs an EntityNormalizer object.
    *
-   * @param EntityTypeManagerInterface $entity_manager
-   *
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager.
+   * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $entity_type_repository
+   *   The entity type repository.
+   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
+   *   The entity field manager.
+   * @param \Drupal\Core\Entity\EntityTypeBundleInfoInterface $entity_type_bundle_info
+   *   The entity bundle info.
+   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
+   *   The entity repository.
    * @param SyncNormalizerDecoratorManager $decorator_manager
-   *
-   * @param EntityTypeRepositoryInterface $entity_type_repository
-   *
-   * @param EntityTypeBundleInfo $entity_type_bundle_info
-   *
-   * @param EntityFieldManager $entity_field_manager
-   *
-   * @param EntityRepository $entity_repository
    */
-  public function __construct(
-    EntityTypeManagerInterface $entity_manager,
-    SyncNormalizerDecoratorManager $decorator_manager,
-    EntityTypeRepositoryInterface $entity_type_repository,
-    EntityTypeBundleInfo $entity_type_bundle_info,
-    EntityFieldManager $entity_field_manager,
-    EntityRepository $entity_repository) {
-
-    parent::__construct($entity_manager);
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeRepositoryInterface $entity_type_repository, EntityFieldManagerInterface $entity_field_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityRepositoryInterface $entity_repository, SyncNormalizerDecoratorManager $decorator_manager) {
+    parent::__construct($entity_type_manager, $entity_type_repository, $entity_field_manager);
     $this->decoratorManager = $decorator_manager;
-    $this->entityTypeRepository = $entity_type_repository;
-    $this->entityTypeBundleInfo = $entity_type_bundle_info;
-    $this->entityFieldManager = $entity_field_manager;
     $this->entityRepository = $entity_repository;
+    $this->entityTypeBundleInfo = $entity_type_bundle_info;
   }
 
   /**
