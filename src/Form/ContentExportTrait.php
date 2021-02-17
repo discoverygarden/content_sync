@@ -76,7 +76,6 @@ trait ContentExportTrait {
    *
    * @return array
    */
-<<<<<<< HEAD
   public function generateExportBatch($entities = [], $serializer_context = []) {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
