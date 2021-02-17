@@ -71,7 +71,7 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
           $parent_uuid = substr($tmp, 1);
           $parents = $storage->loadByProperties(['uuid' => $parent_uuid]);
           $parent = !empty($parents) ? reset($parents) : null;
-          if (!empty($parent) && $!this->parentExistence($parent_uuid, $normalized_entity)) {
+          if (!empty($parent) && !$this->parentExistence($parent_uuid, $normalized_entity)) {
             $normalized_entity['parent'][] = [
               'target_type' => $entity_type,
               'target_uuid' => $parent_uuid,
