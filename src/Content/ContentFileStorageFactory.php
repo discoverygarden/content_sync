@@ -19,7 +19,7 @@ class ContentFileStorageFactory {
    * no longer creates an active directory.
    */
   public static function getActive() {
-    return new FileStorage(content_sync_get_content_directory(CONFIG_ACTIVE_DIRECTORY)."/entities");
+    return new FileStorage(content_sync_get_content_directory('active') . "/entities");
   }
 
   /**
@@ -28,6 +28,6 @@ class ContentFileStorageFactory {
    * @return \Drupal\Core\Config\FileStorage FileStorage
    */
   public static function getSync() {
-    return new FileStorage(content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY)."/entities");
+    return new FileStorage(content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY) . "/entities");
   }
 }

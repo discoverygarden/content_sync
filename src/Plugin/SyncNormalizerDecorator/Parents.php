@@ -66,15 +66,17 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
         }
       }
       elseif (method_exists($entity, 'getParentId')) {
-        $parent = $entity->getParentId();
-        if (($tmp = strstr($parent, ':')) !== FALSE) {
+        $parent_id = $entity->getParentId();
+        if (($tmp = strstr($parent_id, ':')) !== false) {
           $parent_uuid = substr($tmp, 1);
-          if (!$this->parentExistence($parent_uuid, $normalized_entity)) {
+          $parents = $storage->loadByProperties(['uuid' => $parent_uuid]);
+          $parent = !empty($parents) ? reset($parents) : null;
+          if (!empty($parent) && !$this->parentExistence($parent_uuid, $normalized_entity)) {
             $normalized_entity['parent'][] = [
               'target_type' => $entity_type,
               'target_uuid' => $parent_uuid,
             ];
-            $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] = $entity_type . "." . $entity_type . "." . $parent_uuid;
+            $normalized_entity['_content_sync']['entity_dependencies'][$entity_type][] = $entity_type . "." . $parent->bundle() . "." . $parent_uuid;
           }
         }
       }

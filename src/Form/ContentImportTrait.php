@@ -134,7 +134,7 @@ trait ContentImportTrait {
         $context['results']['errors'][] = $context['message'];
       }
       if ($error) {
-        drupal_set_message($context['message'], 'error');
+        \Drupal::messenger()->addError($context['message']);
       }
       // We need to count the progress anyway even if an error has occured.
       $context['sandbox']['progress']++;
@@ -196,7 +196,7 @@ trait ContentImportTrait {
             $cache = \Drupal::cache('content')->invalidate($entity_type_id.".".$bundle.":".$name);
           } catch (EntityStorageException $e) {
             $message = $e->getMessage();
-            drupal_set_message($message, 'error');
+            \Drupal::messenger()->addError($message);
           }
         }
       }
@@ -234,15 +234,15 @@ trait ContentImportTrait {
     if ($success) {
       if (!empty($results['errors'])) {
         foreach ($results['errors'] as $error) {
-          drupal_set_message($error, 'error');
+          \Drupal::messenger()->addError($error);
           \Drupal::logger('config_sync')->error($error);
         }
-        drupal_set_message(\Drupal::translation()
-                                  ->translate('The content was imported with errors.'), 'warning');
+        \Drupal::messenger()->addWarning(\Drupal::translation()
+          ->translate('The content was imported with errors.'));
       }
       else {
-        drupal_set_message(\Drupal::translation()
-                                  ->translate('The content was imported successfully.'));
+        \Drupal::messenger()->addStatus(\Drupal::translation()
+          ->translate('The content was imported successfully.'));
       }
     }
     else {
@@ -254,7 +254,7 @@ trait ContentImportTrait {
                           '%error_operation' => $error_operation[0],
                           '@arguments' => print_r($error_operation[1], TRUE),
                         ]);
-      drupal_set_message($message, 'error');
+      \Drupal::messenger()->addError($message, 'error');
     }
   }
 
