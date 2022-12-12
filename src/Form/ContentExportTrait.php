@@ -259,6 +259,10 @@ trait ContentExportTrait {
               }
 
               $context['sandbox']['exported'][$name] = $name;
+              $context['results'][] = $name;
+              // Increment the progress for the message.
+              $message_progress = $context['sandbox']['progress'] + 1;
+              $context['message'] = "$name {$message_progress}/{$context['sandbox']['max']}";
             }
           }
 
@@ -269,9 +273,6 @@ trait ContentExportTrait {
     $this->exportQueue->deleteItem($queue_item);
 
     $context['sandbox']['progress']++;
-    $context['results'][] = $name;
-    $context['message'] = "$name {$context['sandbox']['progress']}/{$context['sandbox']['max']}";
-
     $context['finished'] = $context['sandbox']['max'] > 0
                            && $context['sandbox']['progress'] < $context['sandbox']['max'] ?
                            $context['sandbox']['progress'] / $context['sandbox']['max'] : 1;
