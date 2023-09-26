@@ -87,11 +87,11 @@ trait ContentImportTrait {
   /**
    * Processes the content import to be updated or created batch and persists the importer.
    *
-   * @param string $serializer_context
-   * @param array $context
+   * @param array $serializer_context
+   * @param \DrushBatchContext|array $context
    *   The batch context.
    */
-  public function syncContent($serializer_context = [], &$context) {
+  public function syncContent(array $serializer_context = [], &$context = []) {
     if (empty($context['sandbox'])) {
       $context['sandbox']['progress'] = 0;
       $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
@@ -148,11 +148,11 @@ trait ContentImportTrait {
   /**
    * Processes the content import to be deleted or created batch and persists the importer.
    *
-   * @param string $serializer_context
-   * @param array $context
+   * @param array $serializer_context
+   * @param array|\DrushBatchContext $context
    *   The batch context.
    */
-  public function deleteContent($serializer_context = [], &$context) {
+  public function deleteContent(array $serializer_context = [], &$context = []) {
     if (empty($context['sandbox'])) {
       $context['sandbox']['progress'] = 0;
       $context['sandbox']['directory'] = $serializer_context['content_sync_directory_entities'];
@@ -163,7 +163,7 @@ trait ContentImportTrait {
       $error = TRUE;
       $item = $queue_item->data;
       $ids = explode('.', $item);
-      list($entity_type_id, $bundle, $uuid) = $ids;
+      [$entity_type_id, $bundle, $uuid] = $ids;
 
       $entity = $this->contentSyncManager->getEntityTypeManager()->getStorage($entity_type_id)
                                          ->loadByProperties(['uuid' => $uuid]);

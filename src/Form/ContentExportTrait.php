@@ -76,7 +76,7 @@ trait ContentExportTrait {
    *
    * @return array
    */
-  public function generateExportBatch($entities = [], $serializer_context = []) {
+  public function generateExportBatch(array $entities = [], array $serializer_context = []) {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     }
@@ -129,7 +129,7 @@ trait ContentExportTrait {
    *   - entity_uuid: The UUID of the identified entity.
    */
   protected static function exportSplitName($name) {
-    list($entity_type, , $entity_uuid) = explode('.', $name);
+    [$entity_type, , $entity_uuid] = explode('.', $name);
     return compact('entity_type', 'entity_uuid');
   }
 
@@ -138,10 +138,10 @@ trait ContentExportTrait {
    *
    * @param array $serializer_context
    *   The serializer context.
-   * @param array|DrushBatchContext $context
+   * @param \DrushBatchContext|array $context
    *   The batch context.
    */
-  public function processContentExportFiles($serializer_context = [], &$context) {
+  public function processContentExportFiles(array $serializer_context = [], &$context = []) {
     //Initialize Batch
     if (!isset($context['sandbox']['progress'])) {
       $context['sandbox']['progress'] = 0;
@@ -282,12 +282,12 @@ trait ContentExportTrait {
    * Generate UUID YAML file
    * To use for site UUID validation.
    *
-   * @param $data
+   * @param array $serializer_context
    *   The batch content to persist.
-   * @param array $context
+   * @param \DrushBatchContext|array $context
    *   The batch context.
    */
-  public function generateSiteUUIDFile($serializer_context, &$context) {
+  public function generateSiteUUIDFile(array $serializer_context, &$context) {
     //Include Site UUID to YML file
     $site_config = \Drupal::config('system.site');
     $site_uuid_source = $site_config->get('uuid');
