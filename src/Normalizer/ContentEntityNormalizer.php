@@ -66,7 +66,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $context = []) {
+  public function denormalize($data, $class, $format = NULL, array $context = []) : mixed {
     if (is_null($data)) {
       return NULL;
     }
@@ -114,7 +114,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) {
+  public function normalize($object, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
     /* @var ContentEntityInterface $object */
     $normalized_data = parent::normalize($object, $format, $context);
 
@@ -169,7 +169,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
    * @return bool
    */
   protected function inDependencies($dependency, $dependencies) {
-    list($entity_type_id, $bundle, $uuid) = explode('.', $dependency);
+    [$entity_type_id, $bundle, $uuid] = explode('.', $dependency);
     if (isset($dependencies[$entity_type_id])) {
       if (in_array($dependency, $dependencies[$entity_type_id])) return TRUE;
     }
@@ -205,20 +205,6 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
       $entity = \Drupal::entityTypeManager()->getStorage($entity_type)->load($entity_id);
     }
     return $entity;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public function supportsNormalization($data, $format = NULL) {
-    return parent::supportsNormalization($data, $format) && !empty($data->is_content_sync);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public function supportsDenormalization($data, $type, $format = NULL) {
-    return parent::supportsDenormalization($data, $type, $format);
   }
 
   /**

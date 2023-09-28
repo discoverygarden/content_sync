@@ -42,7 +42,7 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($field_item, $format = NULL, array $context = []) {
+  public function normalize($field_item, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
     $values = parent::normalize($field_item, $format, $context);
 
     /** @var \Drupal\Core\Entity\EntityInterface $entity */

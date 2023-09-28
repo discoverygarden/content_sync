@@ -59,7 +59,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $serializer_context = array()) {
+  public function denormalize($data, $class, $format = NULL, array $serializer_context = array()) : mixed {
 
     $file_data = '';
 
@@ -132,7 +132,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $serializer_context = array()) {
+  public function normalize($object, $format = NULL, array $serializer_context = array()) : float|int|bool|\ArrayObject|array|string|null {
     $data = parent::normalize($object, $format, $serializer_context);
 
     // The image will be saved in the export directory.
@@ -141,7 +141,8 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
       $scheme = \Drupal::service('stream_wrapper_manager')->getScheme($uri);
       $destination = "{$serializer_context['content_sync_directory_files']}/{$scheme}/";
       $destination = str_replace($scheme . '://', $destination, $uri);
-      $this->fileSystem->prepareDirectory($this->fileSystem->dirname($destination), FileSystemInterface::CREATE_DIRECTORY);
+      $destination_dir = $this->fileSystem->dirname($destination);
+      $this->fileSystem->prepareDirectory($destination_dir, FileSystemInterface::CREATE_DIRECTORY);
       $this->fileSystem->copy($uri, $destination, FileSystemInterface::EXISTS_REPLACE);
     }
 
