@@ -128,9 +128,7 @@ class ContentLogController extends ControllerBase {
 
     $classes = static::getLogLevelClassMap();
 
-    $this->moduleHandler->loadInclude('module_sync', 'admin.inc');
-
-    //$build['admin_filter_form'] = $this->formBuilder->getForm('Drupal\content_sync\Form\ContentLogFilterForm');
+    $this->moduleHandler->loadInclude('content_sync', 'admin.inc');
 
     $header = [
       // Icon column.
