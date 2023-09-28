@@ -61,11 +61,6 @@ class ContentSyncDialogHelper {
    */
   public static function attachLibraries(array &$build) {
     $build['#attached']['library'][] = 'content_sync/content_sync.admin.dialog';
-    // @see \Drupal\content_sync\Element\content_syncHtmlEditor::preRendercontent_syncHtmlEditor
-    if (\Drupal::moduleHandler()->moduleExists('imce') && Imce::access()) {
-      $element['#attached']['library'][] = 'imce/drupal.imce.ckeditor';
-      $element['#attached']['drupalSettings']['content_sync']['html_editor']['ImceImageIcon'] = file_create_url(drupal_get_path('module', 'imce') . '/js/plugins/ckeditor/icons/imceimage.png');
-    }
   }
 
   /**
