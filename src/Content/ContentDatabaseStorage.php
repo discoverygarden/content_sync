@@ -41,12 +41,11 @@ class ContentDatabaseStorage extends DatabaseStorage {
    * @return bool
    */
   protected function cs_doWrite($name, $data, $collection) {
-    $options = ['return' => Database::RETURN_AFFECTED] + $this->options;
-    $this->connection->delete($this->table, $options)
+    $this->connection->delete($this->table, $this->options)
       ->condition('name', $name)
       ->execute();
 
-    return (bool) $this->connection->merge($this->table, $options)
+    return (bool) $this->connection->merge($this->table, $this->options)
       ->keys(['collection', 'name'], [$collection, $name])
       ->fields(['data' => $data])
       ->execute();
