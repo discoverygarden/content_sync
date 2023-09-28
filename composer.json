@@ -1,5 +1,5 @@
 {
-  "name": "drupal/content_sync",
+  "name": "discoverygarden/content_sync",
   "description": "Content Sync functionality.",
   "type": "drupal-module",
   "homepage": "http://drupal.org/project/content_sync",
@@ -38,6 +38,9 @@
   "require": {
     "drupal/core": "^8.8 || ^9"
   },
+    "replace": {
+        "drupal/content_sync": "^2"
+    },
   "extra": {
     "drush": {
       "services": {
