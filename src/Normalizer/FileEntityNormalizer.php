@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Component\Render\FormattableMarkup;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 
 /**
  * Adds the file URI to embedded file entities.
@@ -31,19 +32,28 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   protected $fileSystem;
 
   /**
-   * FileEntityNormalizer constructor.
+   * File URL generator service.
    *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *   The entity type manager.
-   * @param \Drupal\Core\Entity\EntityTypeRepositoryInterface $entity_type_repository
-   *   The entity type repository.
-   * @param \Drupal\Core\Entity\EntityFieldManagerInterface $entity_field_manager
-   *   The entity field manager.
-   * @param \Drupal\content_sync\Plugin\SyncNormalizerDecoratorManager $decorator_manager
+   * @var \Drupal\Core\File\FileUrlGeneratorInterface
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeRepositoryInterface $entity_type_repository, EntityFieldManagerInterface $entity_field_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityRepositoryInterface $entity_repository, SyncNormalizerDecoratorManager $decorator_manager, FileSystemInterface $file_system) {
+  protected FileUrlGeneratorInterface $fileUrlGenerator;
+
+  /**
+   * Constructor.
+   */
+  public function __construct(
+    EntityTypeManagerInterface $entity_type_manager,
+    EntityTypeRepositoryInterface $entity_type_repository,
+    EntityFieldManagerInterface $entity_field_manager,
+    EntityTypeBundleInfoInterface $entity_type_bundle_info,
+    EntityRepositoryInterface $entity_repository,
+    SyncNormalizerDecoratorManager $decorator_manager,
+    FileSystemInterface $file_system,
+    FileUrlGeneratorInterface $file_url_generator
+  ) {
     parent::__construct($entity_type_manager, $entity_type_repository, $entity_field_manager, $entity_type_bundle_info, $entity_repository, $decorator_manager);
     $this->fileSystem = $file_system;
+    $this->fileUrlGenerator = $file_url_generator;
   }
 
   /**
@@ -75,7 +85,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
             $data['uri'] = [
               [
                 'value' => $uri,
-                'url' => str_replace($GLOBALS['base_url'], '', file_create_url($uri))
+                'url' => str_replace($GLOBALS['base_url'], '', $this->fileUrlGenerator->generateString($uri))
               ]
             ];
 
