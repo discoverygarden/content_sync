@@ -77,8 +77,7 @@ class ContentDatabaseStorage extends DatabaseStorage {
    * @todo Ignore replica targets for data manipulation operations.
    */
   public function cs_delete($name) {
-    $options = ['return' => Database::RETURN_AFFECTED] + $this->options;
-    return (bool) $this->connection->delete($this->table, $options)
+    return (bool) $this->connection->delete($this->table, $this->options)
       ->condition('name', $name)
       ->execute();
   }
