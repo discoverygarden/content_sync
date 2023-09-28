@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\Commands;
 
-use Webmozart\PathUtil\Path;
 use Drush\Utils\FsUtils;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
@@ -32,6 +31,7 @@ use Drush\Exceptions\UserAbortException;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * A Drush commandfile.
@@ -197,7 +197,8 @@ class ContentSyncCommands extends DrushCommands {
   public function interactContentLabel(InputInterface $input, ConsoleOutputInterface $output) {
     global $content_directories;
     if (empty($input->getArgument('label'))) {
-      $choices = drush_map_assoc(array_keys($content_directories));
+      $keys = array_keys($content_directories);
+      $choices = array_combine($keys, $keys);
       if (count($choices) >= 2) {
         $label = $this->io()->choice('Choose a content_sync directory:', $choices);
         $input->setArgument('label', $label);
