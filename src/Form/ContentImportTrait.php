@@ -159,6 +159,7 @@ trait ContentImportTrait {
       $context['sandbox']['max'] = $this->queueDelete->numberOfItems();
     }
     $queue_item = $this->queueDelete->claimItem();
+    $error = FALSE;
     if ($queue_item) {
       $error = TRUE;
       $item = $queue_item->data;
@@ -210,7 +211,7 @@ trait ContentImportTrait {
     }
     $context['results'][] = TRUE;
     $context['sandbox']['progress']++;
-    $context['message'] = $message;
+    $context['message'] = $message ?? "No message";
 
     if ($error) {
       if (!isset($context['results']['errors'])) {
