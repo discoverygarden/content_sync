@@ -3,19 +3,15 @@
 namespace Drupal\content_sync\Controller;
 
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\system\FileDownloadController;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-use Drupal\Component\Utility\Unicode;
-//use Drupal\Core\Archiver\ArchiveTar;
 use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Diff\DiffFormatter;
-//use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Url;
-//use Symfony\Component\HttpFoundation\Request;
 use Drupal\Core\File\FileSystemInterface;
-
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\Mime\Header\Headers;
 
 /**
  * Returns responses for content module routes.
@@ -99,13 +95,17 @@ class ContentController implements ContainerInjectionInterface {
     if (file_exists($file_path) ) {
       unset($_SESSION['content_tar_download_file']);
       $mime = \Drupal::service('file.mime_type.guesser')->guess($file_path);
-      $headers = array(
-        'Content-Type' => $mime . '; name="' . Unicode::mimeHeaderEncode(basename($file_path)) . '"',
-        'Content-Length' => filesize($file_path),
-        'Content-Disposition' => 'attachment; filename="' . Unicode::mimeHeaderEncode($filename) . '"',
-        'Cache-Control' => 'private',
-      );
-      return new BinaryFileResponse($file_path, 200, $headers);
+      $headers = (new Headers())
+        ->addParameterizedHeader('Content-Type', $mime, ['name' => basename($file_path)])
+        ->addTextHeader('Content-Length', filesize($file_path))
+        ->addParameterizedHeader('Content-Disposition', 'attachment', ['filename' => $filename])
+        ->addTextHeader('Cache-Control', 'private');
+      $header_bag = new ResponseHeaderBag();
+      foreach ($headers->all() as $name => $value) {
+        $header_bag->set($name, $value);
+      }
+
+      return new BinaryFileResponse($file_path, 200, $header_bag->all());
     }
     return -1;
   }

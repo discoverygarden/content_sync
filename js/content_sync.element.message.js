@@ -3,7 +3,7 @@
  * JavaScript behaviors for message element integration.
  */
 
-(function ($, Drupal) {
+(function ($, Drupal, once) {
 
   'use strict';
 
@@ -14,8 +14,8 @@
    */
   Drupal.behaviors.content_syncMessageClose = {
     attach: function (context) {
-      $(context).find('.js-content_sync-message--close').once('content_sync-message--close').each(function () {
-        var $element = $(this);
+      once('content_sync-message--close', '.js-content_sync-message--close', context).forEach((element) => {
+        var $element = $(element);
 
         var id = $element.attr('data-message-id');
         var storage = $element.attr('data-message-storage');
@@ -89,4 +89,4 @@
     }
   }
 
-})(jQuery, Drupal);
+})(jQuery, Drupal, once);

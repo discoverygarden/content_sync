@@ -284,7 +284,7 @@ function content_sync_cron() {
 
   $conn = \Drupal::database();
   $query = $conn->delete(DatabaseQueue::TABLE_NAME)
-    ->condition('created', REQUEST_TIME - 864000, '<');
+    ->condition('created', \Drupal::time()->getRequestTime() - 864000, '<');
 
   $or = $query->orConditionGroup();
   foreach ($prefixes as $prefix) {
