@@ -53,6 +53,13 @@ class ContentController implements ContainerInjectionInterface {
   protected $diffFormatter;
 
   /**
+   * The filesystem service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
+
+    /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container) {
