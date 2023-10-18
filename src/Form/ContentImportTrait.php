@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Config\StorageComparer;
+use Drupal\Core\Queue\QueueInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Entity\ContentEntityType;
@@ -16,6 +17,20 @@ use Drupal\Core\Entity\ContentEntityType;
  * Defines the content import form.
  */
 trait ContentImportTrait {
+
+  /**
+   * The queue of items to delete.
+   *
+   * @var \Drupal\Core\Queue\QueueInterface
+   */
+  protected QueueInterface $queueDelete;
+
+  /**
+   * The queue of items to update.
+   *
+   * @var \Drupal\Core\Queue\QueueInterface
+   */
+  protected QueueInterface $queueSync;
 
   /**
    * Define the delete queue prefix.
