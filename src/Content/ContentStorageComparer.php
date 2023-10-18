@@ -20,13 +20,12 @@ class ContentStorageComparer extends StorageComparer {
    * Largely copypasta of the parent, with the exception of rolling
    * "NullBackend" caches instead of "MemoryBackend".
    */
-  public function __construct(StorageInterface $source_storage, StorageInterface $target_storage, ConfigManagerInterface $config_manager) {
+  public function __construct(StorageInterface $source_storage, StorageInterface $target_storage) {
 
     $this->sourceCacheStorage = new NullBackend(__CLASS__ . '::source');
     $this->sourceStorage = new CachedStorage($source_storage, $this->sourceCacheStorage);
     $this->targetCacheStorage = new NullBackend(__CLASS__ . '::target');
     $this->targetStorage = new CachedStorage($target_storage, $this->targetCacheStorage);
-    $this->configManager = $config_manager;
     $this->changelist[StorageInterface::DEFAULT_COLLECTION] = $this
       ->getEmptyChangelist();
   }
