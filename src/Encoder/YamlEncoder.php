@@ -39,11 +39,11 @@ class YamlEncoder implements EncoderInterface, DecoderInterface{
     return $format == $this->format;
   }
 
-  public function encode($data, $format, array $context = array()) {
+  public function encode($data, $format, array $context = array()) : string {
     return $this->yaml->encode($data);
   }
 
-  public function supportsEncoding($format) {
+  public function supportsEncoding($format) : bool {
     return $format == $this->format;
   }
 }

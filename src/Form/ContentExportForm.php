@@ -33,6 +33,12 @@ class ContentExportForm extends FormBase {
    */
   protected $contentSyncManager;
 
+  /**
+   * The filesystem service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
 
   /**
    * ContentExportForm constructor.

@@ -53,6 +53,11 @@ class ContentExportMultiple extends ConfirmFormBase {
   protected $formats;
 
   /**
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected FileSystemInterface $fileSystem;
+
+  /**
    * Constructs a ContentSyncMultiple form object.
    *
    * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store_factory

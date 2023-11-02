@@ -2,24 +2,18 @@
 
 namespace Drupal\content_sync\Commands;
 
-use Webmozart\PathUtil\Path;
-use Drush\Utils\FsUtils;
+use Drupal\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Drupal\content_sync\ContentSyncManagerInterface;
 use Drupal\content_sync\Exporter\ContentExporterInterface;
 use Drupal\content_sync\Form\ContentExportTrait;
 use Drupal\content_sync\Form\ContentImportTrait;
-use Drupal\content_sync\Form\ContentSync;
-use Drupal\config\StorageReplaceDataWrapper;
-use Drupal\Core\Config\ConfigManagerInterface;
 use Drupal\Core\Config\FileStorage;
 use Drupal\content_sync\Content\ContentStorageComparer;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\DependencyInjection\DependencySerializationTrait;
-use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Extension\ModuleInstallerInterface;
@@ -32,6 +26,7 @@ use Drush\Exceptions\UserAbortException;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Symfony\Component\Filesystem\Path;
 
 /**
  * A Drush commandfile.
@@ -50,8 +45,6 @@ class ContentSyncCommands extends DrushCommands {
   use ContentImportTrait;
   use DependencySerializationTrait;
   use StringTranslationTrait;
-
-  protected $configManager;
 
   protected $contentStorage;
 
@@ -76,14 +69,9 @@ class ContentSyncCommands extends DrushCommands {
   protected $moduleHandler;
 
   /**
-   * Gets the configManager.
-   *
-   * @return \Drupal\Core\Config\ConfigManagerInterface
-   *   The configManager.
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
-  public function getConfigManager() {
-    return $this->configManager;
-  }
+  protected EventDispatcherInterface $eventDispatcher;
 
   /**
    * Gets the contentStorage.
@@ -129,8 +117,6 @@ class ContentSyncCommands extends DrushCommands {
   /**
    * ContentSyncCommands constructor.
    *
-   * @param \Drupal\Core\Config\ConfigManagerInterface $configManager
-   *   The configManager.
    * @param \Drupal\Core\Config\StorageInterface $contentStorage
    *   The contentStorage.
    * @param \Drupal\Core\Config\StorageInterface $contentStorageSync
@@ -156,9 +142,8 @@ class ContentSyncCommands extends DrushCommands {
    * @param \Drupal\Core\StringTranslation\TranslationInterface $stringTranslation
    *   The stringTranslation.
    */
-  public function __construct(ConfigManagerInterface $configManager, StorageInterface $contentStorage, StorageInterface $contentStorageSync, ContentSyncManagerInterface $contentSyncManager, EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ModuleHandlerInterface $moduleHandler, EventDispatcherInterface $eventDispatcher, LockBackendInterface $lock, TypedConfigManagerInterface $configTyped, ModuleInstallerInterface $moduleInstaller, ThemeHandlerInterface $themeHandler, TranslationInterface $stringTranslation) {
+  public function __construct(StorageInterface $contentStorage, StorageInterface $contentStorageSync, ContentSyncManagerInterface $contentSyncManager, EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ModuleHandlerInterface $moduleHandler, EventDispatcherInterface $eventDispatcher, LockBackendInterface $lock, TypedConfigManagerInterface $configTyped, ModuleInstallerInterface $moduleInstaller, ThemeHandlerInterface $themeHandler, TranslationInterface $stringTranslation) {
     parent::__construct();
-    $this->configManager = $configManager;
     $this->contentStorage = $contentStorage;
     $this->contentStorageSync = $contentStorageSync;
     $this->contentSyncManager = $contentSyncManager;
@@ -178,10 +163,18 @@ class ContentSyncCommands extends DrushCommands {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('config.manager'),
       $container->get('content.storage'),
       $container->get('content.storage.sync'),
-      $container->get('content_sync.manager')
+      $container->get('content_sync.manager'),
+      $container->get('entity_type.manager'),
+      $container->get('content_sync.exporter'),
+      $container->get('module_handler'),
+      $container->get('event_dispatcher'),
+      $container->get('lock'),
+      $container->get('config.typed'),
+      $container->get('module_installer'),
+      $container->get('theme_handler'),
+      $container->get('string_translation'),
     );
   }
 
@@ -197,7 +190,8 @@ class ContentSyncCommands extends DrushCommands {
   public function interactContentLabel(InputInterface $input, ConsoleOutputInterface $output) {
     global $content_directories;
     if (empty($input->getArgument('label'))) {
-      $choices = drush_map_assoc(array_keys($content_directories));
+      $keys = array_keys($content_directories);
+      $choices = array_combine($keys, $keys);
       if (count($choices) >= 2) {
         $label = $this->io()->choice('Choose a content_sync directory:', $choices);
         $input->setArgument('label', $label);
@@ -241,7 +235,7 @@ class ContentSyncCommands extends DrushCommands {
     }
 
     //Generate comparer with filters.
-    $storage_comparer = new ContentStorageComparer($source_storage, $this->contentStorage,  $this->configManager);
+    $storage_comparer = new ContentStorageComparer($source_storage, $this->contentStorage);
     $change_list = [];
     $collections = $storage_comparer->getAllCollectionNames();
     if (!empty($options['entity-types'])){
@@ -353,7 +347,7 @@ class ContentSyncCommands extends DrushCommands {
     }
 
     //Generate comparer with filters.
-    $storage_comparer = new ContentStorageComparer($this->contentStorage, $target_storage, $this->configManager);
+    $storage_comparer = new ContentStorageComparer($this->contentStorage, $target_storage);
     $change_list = [];
     $collections = $storage_comparer->getAllCollectionNames();
     if (!empty($options['entity-types'])){

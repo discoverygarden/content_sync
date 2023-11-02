@@ -54,7 +54,7 @@ class ContentSyncLog implements LoggerInterface {
   /**
    * {@inheritdoc}
    */
-  public function log($level, $message, array $context = []) {
+  public function log($level, \Stringable|string $message, array $context = []) : void {
     // Remove any backtraces since they may contain an unserializable variable.
     unset($context['backtrace']);
 
