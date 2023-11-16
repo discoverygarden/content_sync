@@ -68,7 +68,7 @@ class ContentSyncManager implements ContentSyncManagerInterface {
     $queue = [];
     foreach ($file_names as $file) {
       $ids = explode('.', $file);
-      list($entity_type_id, $bundle, $uuid) = $ids;
+      list($entity_type_id, $bundle, $uuid) = $ids + ['', '', ''];
       $file_path = $directory . "/" . $entity_type_id . "/" . $bundle . "/" . $file . ".yml";
       if (!file_exists($file_path) || !$this->isValidFilename($file)) {
         continue;
