@@ -303,4 +303,19 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
     }
   }
 
+
+  /**
+   * @inheritdoc
+   */
+  public function supportsNormalization($data, $format = NULL, array $context = []): bool {
+    return parent::supportsNormalization($data, $format, $context) && !empty($data->is_content_sync);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public function supportsDenormalization($data, $type, $format = NULL, array $context = []): bool {
+    return parent::supportsDenormalization($data, $type, $format, $context);
+  }
+
 }
