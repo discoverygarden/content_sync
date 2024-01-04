@@ -27,7 +27,7 @@ class ContentExporter implements ContentExporterInterface {
    */
   public function exportEntity(ContentEntityInterface $entity, array $context = []) {
     $context = $this->context + $context;
-    // Allows to know to normalizers that this is a content sync generated entity.
+    // Allows normalizers to know that this is a content sync generated entity.
     $context += [
       'content_sync' => TRUE,
     ];
