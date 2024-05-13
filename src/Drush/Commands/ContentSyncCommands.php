@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\content_sync\Commands;
+namespace Drupal\content_sync\Drush\Commands;
 
 use Drupal\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Console\Input\InputInterface;

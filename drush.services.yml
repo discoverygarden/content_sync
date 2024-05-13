@@ -1,8 +1,0 @@
----
-services:
-  content_sync.commands:
-    class: \Drupal\content_sync\Commands\ContentSyncCommands
-    factory: [null, create]
-    arguments: ['@service_container']
-    tags:
-      - { name: drush.command }
