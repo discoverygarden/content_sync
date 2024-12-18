@@ -2,7 +2,9 @@
 
 namespace Drupal\content_sync\Drush\Commands;
 
+use Consolidation\AnnotatedCommand\Attributes\HookSelector;
 use Drupal\Component\DependencyInjection\ContainerInterface;
+use Drupal\content_sync\Form\ContentExportForm;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Drupal\content_sync\ContentSyncManagerInterface;
@@ -21,6 +23,7 @@ use Drupal\Core\Extension\ThemeHandlerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drush\Attributes as CLI;
 use Drush\Commands\DrushCommands;
 use Drush\Exceptions\UserAbortException;
 use Symfony\Component\Console\Helper\Table;
@@ -67,6 +70,13 @@ class ContentSyncCommands extends DrushCommands {
   protected $stringTranslation;
 
   protected $moduleHandler;
+
+  /**
+   * The snapshot service.
+   *
+   * @var \Drupal\content_sync\Form\ContentExportForm
+   */
+  protected ContentExportForm $snapshot;
 
   /**
    * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
@@ -141,8 +151,10 @@ class ContentSyncCommands extends DrushCommands {
    *   The themeHandler.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $stringTranslation
    *   The stringTranslation.
+   * @param \Drupal\content_sync\Form\ContentExportForm $snapshot
+   *   The snapshot service.
    */
-  public function __construct(StorageInterface $contentStorage, StorageInterface $contentStorageSync, ContentSyncManagerInterface $contentSyncManager, EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ModuleHandlerInterface $moduleHandler, EventDispatcherInterface $eventDispatcher, LockBackendInterface $lock, TypedConfigManagerInterface $configTyped, ModuleInstallerInterface $moduleInstaller, ThemeHandlerInterface $themeHandler, TranslationInterface $stringTranslation) {
+  public function __construct(StorageInterface $contentStorage, StorageInterface $contentStorageSync, ContentSyncManagerInterface $contentSyncManager, EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ModuleHandlerInterface $moduleHandler, EventDispatcherInterface $eventDispatcher, LockBackendInterface $lock, TypedConfigManagerInterface $configTyped, ModuleInstallerInterface $moduleInstaller, ThemeHandlerInterface $themeHandler, TranslationInterface $stringTranslation, ContentExportForm $snapshot) {
     parent::__construct();
     $this->contentStorage = $contentStorage;
     $this->contentStorageSync = $contentStorageSync;
@@ -156,6 +168,7 @@ class ContentSyncCommands extends DrushCommands {
     $this->moduleInstaller = $moduleInstaller;
     $this->themeHandler = $themeHandler;
     $this->stringTranslation = $stringTranslation;
+    $this->snapshot = $snapshot;
   }
 
   /**
@@ -175,6 +188,7 @@ class ContentSyncCommands extends DrushCommands {
       $container->get('module_installer'),
       $container->get('theme_handler'),
       $container->get('string_translation'),
+      $container->get('content_sync.snaphoshot')
     );
   }
 
@@ -501,4 +515,16 @@ class ContentSyncCommands extends DrushCommands {
     if (!in_array($include_files, ['folder', 'base64'])) $include_files = 'none';
     return $include_files;
   }
+
+  /**
+   * Helper that rebuilds the snapshot table.
+   */
+  #[CLI\Command(name: 'content-sync:snapshot', aliases: ['cs:s'])]
+  #[HookSelector(name: 'islandora-drush-utils-user-wrap')]
+  public function buildSnapshot() : void {
+    $this->logger()->notice('Building snapshot...');
+    $this->snapshot->snapshot();
+    drush_backend_batch_process();
+  }
+
 }

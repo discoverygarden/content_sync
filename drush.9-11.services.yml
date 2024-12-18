@@ -15,5 +15,6 @@ services:
       - '@module_installer'
       - '@theme_handler'
       - '@string_translation'
+      - '@content_sync.snaphoshot'
     tags:
       - { name: drush.command }
