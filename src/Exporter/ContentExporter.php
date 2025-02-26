@@ -10,16 +10,14 @@ class ContentExporter implements ContentExporterInterface {
 
   protected $format = 'yaml';
 
-  protected $serializer;
-
   protected $context = [];
 
   /**
    * ContentExporter constructor.
    */
-  public function __construct(Serializer $serializer) {
-    $this->serializer = $serializer;
-  }
+  public function __construct(
+    protected Serializer $serializer,
+  ) {}
 
 
   /**

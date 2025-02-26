@@ -17,7 +17,7 @@ services:
     class: Drupal\Core\Config\CachedStorage
     arguments: ['@content.storage.active', '@cache.content']
   content.storage.active:
-    class: Drupal\Core\Config\DatabaseStorage
+    class: Drupal\content_sync\Content\DatabaseStorage
     arguments: ['@database', 'cs_db_snapshot']
     public: false
     tags:
@@ -44,6 +44,14 @@ services:
   content_sync.manager:
       class: Drupal\content_sync\ContentSyncManager
       arguments: ['@serializer', '@entity_type.manager','@content_sync.exporter', '@content_sync.importer']
+  content_sync.resolver.export:
+    class: Drupal\content_sync\DependencyResolver\ExportQueueResolver
+    autowire: true
+  content_sync.resolver.import:
+    class: Drupal\content_sync\DependencyResolver\ExportQueueResolver
+    autowire: true
+
+
   content_sync.normalizer.content_entity:
     class: Drupal\content_sync\Normalizer\ContentEntityNormalizer
     arguments: ['@entity_type.manager', '@entity_type.repository', '@entity_field.manager', '@entity_type.bundle.info', '@entity.repository', '@plugin.manager.sync_normalizer_decorator']

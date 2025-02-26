@@ -3,7 +3,10 @@
 namespace Drupal\content_sync\DependencyResolver;
 
 use Drupal\content_sync\ContentSyncManagerInterface;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\DependencyInjection\AutowireTrait;
 use Drupal\Core\Serialization\Yaml;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 
 /**
  * Class ImportQueueResolver.
@@ -11,6 +14,15 @@ use Drupal\Core\Serialization\Yaml;
  * @package Drupal\content_sync\DependencyResolver
  */
 class ImportQueueResolver implements ContentSyncResolverInterface {
+
+  use AutowireTrait;
+
+  public function __construct(
+    #[Autowire(service: 'database')]
+    protected Connection $database,
+  ) {
+
+  }
 
   /**
    * Builds a graph placing the deepest vertexes at the first place.
@@ -52,7 +64,7 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
       }
 
       if (!isset($visited[$identifier]) && $entity) {
-        list($entity_type_id, $bundle, $uuid) = explode('.', $identifier);
+        [$entity_type_id, $bundle, $uuid] = explode('.', $identifier);
         $visited[$identifier] = [
           'entity_type_id' => $entity_type_id,
           'decoded_entity' => $entity,
@@ -71,7 +83,8 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
    *   An array of entity identifiers to process.
    *
    * @return bool|mixed
-   *   Decoded entity or FALSE if an entity already exists and doesn't require to be imported.
+   *   Decoded entity or FALSE if an entity already exists and doesn't require
+   *   to be imported.
    *
    * @throws \Exception
    */
@@ -80,7 +93,7 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
       $entity = $normalized_entities[$identifier];
     }
     else {
-      list($entity_type_id, $bundle, $uuid) = explode('.', $identifier);
+      [$entity_type_id, $bundle, $uuid] = explode('.', $identifier);
       $file_path = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY)."/entities/".$entity_type_id."/".$bundle."/".$identifier.".yml";
       $raw_entity = file_get_contents($file_path);
 
@@ -101,7 +114,7 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
    * @return bool
    */
   protected function entityExists($identifier) {
-    return (bool) \Drupal::database()->queryRange('SELECT 1 FROM {cs_db_snapshot} WHERE name = :name', 0, 1, [
+    return (bool) $this->database->queryRange('SELECT 1 FROM {cs_db_snapshot} WHERE name = :name', 0, 1, [
       ':name' => $identifier])->fetchField();
   }
 
@@ -115,6 +128,7 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
    *   Queue to be processed within a batch process.
    */
   public function resolve(array $normalized_entities, $visited = []) {
+    // @todo Check if this resetting of $visited is actually necessary. It might end up re-visiting things unnecessarily?
     $visited = [];
     foreach ($normalized_entities as $identifier => $entity) {
       $this->depthFirstSearch($visited, [$identifier], $normalized_entities);

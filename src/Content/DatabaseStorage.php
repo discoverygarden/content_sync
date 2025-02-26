@@ -2,13 +2,12 @@
 
 namespace Drupal\content_sync\Content;
 
-use Drupal\Core\Config\DatabaseStorage as DatabaseStorage;
-use Drupal\Core\Database\Database;
+use Drupal\Core\Config\DatabaseStorage as UpstreamDatabaseStorage;
 
 /**
  * Defines the Database storage.
  */
-class ContentDatabaseStorage extends DatabaseStorage {
+class DatabaseStorage extends UpstreamDatabaseStorage implements DatabaseStorageInterface {
 
   /**
    * {@inheritdoc}

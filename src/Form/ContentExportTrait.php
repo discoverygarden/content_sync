@@ -234,8 +234,8 @@ trait ContentExportTrait {
                 // YAML in a directory.
                 $path = $serializer_context['content_sync_directory_entities']."/$entity_type/$bundle";
                 $destination = $path . "/$name.yml";
-                \Drupal::service('file_system')->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
-                $file =  \Drupal::service('file_system')->saveData($exported_entity, $destination, FileSystemInterface::EXISTS_REPLACE);
+                $this->getFileSystem()->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
+                $file =  $this->getFileSystem()->saveData($exported_entity, $destination, FileSystemInterface::EXISTS_REPLACE);
               }
 
               // Invalidate the CS Cache of the entity.
@@ -306,8 +306,8 @@ trait ContentExportTrait {
       }elseif( $serializer_context['export_type'] == 'folder') {
         $path = $serializer_context['content_sync_directory_entities'];
         $destination = $path . "/$name.yml";
-        \Drupal::service('file_system')->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
-        $file = \Drupal::service('file_system')->saveData(Yaml::encode($entity), $destination, FileSystemInterface::EXISTS_REPLACE);
+        $this->getFileSystem()->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
+        $file = $this->getFileSystem()->saveData(Yaml::encode($entity), $destination, FileSystemInterface::EXISTS_REPLACE);
       }
     }
     $context['message'] = $name;
@@ -369,15 +369,15 @@ trait ContentExportTrait {
     }
   }
 
-  protected function getArchiver() {
+  protected function getArchiver() : ArchiveTar {
     if (!isset($this->archiver)) {
       $this->archiver = new ArchiveTar($this->getTempFile(), 'gz');
     }
     return $this->archiver;
   }
 
-  protected function getTempFile() {
-    return \Drupal::service('file_system')->getTempDirectory() . '/content.tar.gz';
+  protected function getTempFile() : string {
+    return $this->getFileSystem()->getTempDirectory() . '/content.tar.gz';
   }
 
   /**
@@ -394,5 +394,9 @@ trait ContentExportTrait {
    * @return \Psr\Log\LoggerInterface
    */
   abstract protected function getExportLogger();
+
+  protected function getFileSystem() : FileSystemInterface {
+    return \Drupal::service('file_system');
+  }
 
 }

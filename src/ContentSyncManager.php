@@ -2,58 +2,47 @@
 
 namespace Drupal\content_sync;
 
+use Drupal\content_sync\DependencyResolver\ContentSyncResolverInterface;
 use Drupal\content_sync\DependencyResolver\ImportQueueResolver;
 use Drupal\content_sync\DependencyResolver\ExportQueueResolver;
 use Drupal\content_sync\Exporter\ContentExporterInterface;
 use Drupal\content_sync\Importer\ContentImporterInterface;
+use Drupal\Core\DependencyInjection\AutowireTrait;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Serializer;
 
 class ContentSyncManager implements ContentSyncManagerInterface {
 
+  use AutowireTrait;
+
   const DELIMITER = '.';
 
   /**
-   * @var \Symfony\Component\Serializer\Serializer
+   * Constructor.
    */
-  protected $serializer;
-
-  /**
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * @var \Drupal\content_sync\Exporter\ContentExporterInterface
-   */
-  protected $contentExporter;
-
-  /**
-   * @var \Drupal\content_sync\Importer\ContentImporterInterface
-   */
-  protected $contentImporter;
-
-  /**
-   * ContentSyncManager constructor.
-   */
-  public function __construct(Serializer $serializer, EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ContentImporterInterface $content_importer) {
-    $this->serializer = $serializer;
-    $this->entityTypeManager = $entity_type_manager;
-    $this->contentExporter = $content_exporter;
-    $this->contentImporter = $content_importer;
-  }
+  public function __construct(
+    protected Serializer $serializer,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected ContentExporterInterface $contentExporter,
+    protected ContentImporterInterface $contentImporter,
+    #[Autowire(service: 'content_sync.resolver.export')]
+    protected ContentSyncResolverInterface|ExportQueueResolver $exportResolver,
+    #[Autowire(service: 'content_sync.resolver.import')]
+    protected ContentSyncResolverInterface|ImportQueueResolver $importResolver,
+  ) {}
 
   /**
    * @return \Drupal\content_sync\Exporter\ContentExporterInterface
    */
-  public function getContentExporter() {
+  public function getContentExporter() : ContentExporterInterface {
     return $this->contentExporter;
   }
 
   /**
    * @return \Drupal\content_sync\Importer\ContentImporterInterface
    */
-  public function getContentImporter() {
+  public function getContentImporter() : ContentImporterInterface {
     return $this->contentImporter;
   }
 
@@ -68,7 +57,7 @@ class ContentSyncManager implements ContentSyncManagerInterface {
     $queue = [];
     foreach ($file_names as $file) {
       $ids = explode('.', $file);
-      list($entity_type_id, $bundle, $uuid) = $ids + ['', '', ''];
+      [$entity_type_id, $bundle, $uuid] = $ids + ['', '', ''];
       $file_path = $directory . "/" . $entity_type_id . "/" . $bundle . "/" . $file . ".yml";
       if (!file_exists($file_path) || !$this->isValidFilename($file)) {
         continue;
@@ -79,8 +68,7 @@ class ContentSyncManager implements ContentSyncManagerInterface {
       $decoded_entities[$file] = $decoded_entity;
     }
     if (!empty($decoded_entities)) {
-      $resolver = new ImportQueueResolver();
-      $queue = $resolver->resolve($decoded_entities);
+      $queue = $this->importResolver->resolve($decoded_entities);
     }
     return $queue;
   }
@@ -94,8 +82,7 @@ class ContentSyncManager implements ContentSyncManagerInterface {
   public function generateExportQueue($decoded_entities, $visited) {
     $queue = [];
     if (!empty($decoded_entities)) {
-      $resolver = new ExportQueueResolver();
-      $queue = $resolver->resolve($decoded_entities, $visited);
+      $queue = $this->exportResolver->resolve($decoded_entities, $visited);
     }
     return $queue;
   }
