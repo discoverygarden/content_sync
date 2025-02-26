@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\File\FileSystemInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -19,57 +20,38 @@ class ContentExportForm extends FormBase {
   use ContentExportTrait;
 
   /**
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * Constructor.
    */
-  protected $entityTypeManager;
+  public function __construct(
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected ContentExporterInterface $contentExporter,
+    protected ContentSyncManagerInterface $contentSyncManager,
+    protected FileSystemInterface $fileSystem,
+  ) {}
 
   /**
-   * @var \Drupal\content_sync\Exporter\ContentExporterInterface
+   * {@inheritDoc}
    */
-  protected $contentExporter;
-
-  /**
-   * @var \Drupal\content_sync\ContentSyncManagerInterface
-   */
-  protected $contentSyncManager;
-
-  /**
-   * The filesystem service.
-   *
-   * @var \Drupal\Core\File\FileSystemInterface
-   */
-  protected FileSystemInterface $fileSystem;
-
-  /**
-   * ContentExportForm constructor.
-   */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ContentExporterInterface $content_exporter, ContentSyncManagerInterface $content_sync_manager, FileSystemInterface $file_system) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->contentExporter = $content_exporter;
-    $this->contentSyncManager = $content_sync_manager;
-    $this->fileSystem = $file_system;
-  }
-
-  public static function create(ContainerInterface $container) {
+  public static function create(ContainerInterface $container) : static {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('content_sync.exporter'),
       $container->get('content_sync.manager'),
-      $container->get('file_system')
+      $container->get('file_system'),
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId() : string {
     return 'content_export_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) : array {
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => $this->t('Export'),
@@ -80,80 +62,82 @@ class ContentExportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) : void {
     // Delete the content tar file in case an older version exist.
     $this->fileSystem->delete($this->getTempFile());
 
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
-    $entity_type_definitions = $this->entityTypeManager->getDefinitions();
-    foreach ($entity_type_definitions as $entity_type => $definition) {
-      $reflection = new \ReflectionClass($definition->getClass());
-      if ($reflection->implementsInterface(ContentEntityInterface::class)) {
-        $entities = $this->entityTypeManager->getStorage($entity_type)
-          ->getQuery()
-          ->accessCheck()
-          ->execute();
-        foreach ($entities as $entity_id) {
-          $entities_list[] = [
-            'entity_type' => $entity_type,
-            'entity_id' => $entity_id,
-          ];
-        }
-      }
-    }
-    if (!empty($entities_list)) {
-      $serializer_context['export_type'] = 'tar';
-      $serializer_context['include_files'] = 'folder';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
-      batch_set($batch);
-    }
-  }
+    // Set batch operations by entity type/bundle.
+    $serializer_context['export_type'] = 'tar';
+    $serializer_context['include_files'] = 'folder';
+    $batch = $this->generateExportBatch($this->generateEntities(), $serializer_context);
 
-  public function snapshot() {
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
-    $entity_type_definitions = $this->entityTypeManager->getDefinitions();
-    foreach ($entity_type_definitions as $entity_type => $definition) {
-      $reflection = new \ReflectionClass($definition->getClass());
-      if ($reflection->implementsInterface(ContentEntityInterface::class)) {
-        $entities = $this->entityTypeManager->getStorage($entity_type)
-          ->getQuery()
-          ->accessCheck()
-          ->execute();
-        foreach ($entities as $entity_id) {
-          $entities_list[] = [
-            'entity_type' => $entity_type,
-            'entity_id' => $entity_id,
-          ];
-        }
-      }
-    }
-    if (!empty($entities_list)) {
-      $serializer_context['export_type'] = 'snapshot';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
+    // Avoid kicking off batch if there were no items enqueued.
+    if ($this->getExportQueue()->numberOfItems() > 0) {
       batch_set($batch);
     }
   }
 
   /**
-   * @{@inheritdoc}
+   * Trigger snapshot batch.
    */
-  protected function getEntityTypeManager() {
+  public function snapshot() : void {
+    // Set batch operations by entity type/bundle.
+    $serializer_context['export_type'] = 'snapshot';
+    $batch = $this->generateExportBatch($this->generateEntities(FALSE), $serializer_context);
+
+    // Avoid kicking off batch if there were no items enqueued.
+    if ($this->getExportQueue()->numberOfItems() > 0) {
+      batch_set($batch);
+    }
+  }
+
+  /**
+   * Helper; generate ALL content entities.
+   *
+   * @param bool $access_check
+   *   TRUE (default) to perform access checking; FALSE to disable access
+   *   checking.
+   *
+   * @return \Traversable
+   *   ALL content entities.
+   */
+  protected function generateEntities(bool $access_check = TRUE) : \Traversable {
+    $entity_type_definitions = $this->entityTypeManager->getDefinitions();
+    foreach ($entity_type_definitions as $entity_type => $definition) {
+      if (!$definition instanceof ContentEntityInterface) {
+        continue;
+      }
+      $entities = $this->entityTypeManager->getStorage($entity_type)
+        ->getQuery()
+        ->accessCheck($access_check)
+        ->execute();
+      foreach ($entities as $entity_id) {
+        yield [
+          'entity_type' => $entity_type,
+          'entity_id' => $entity_id,
+        ];
+      }
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getEntityTypeManager(): EntityTypeManagerInterface {
     return $this->entityTypeManager;
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
-  protected function getContentExporter() {
+  protected function getContentExporter(): ContentExporterInterface {
     return $this->contentExporter;
   }
 
   /**
-   * @{@inheritdoc}
+   * {@inheritdoc}
    */
-  protected function getExportLogger() {
+  protected function getExportLogger(): LoggerInterface {
     return $this->logger('content_sync');
   }
 

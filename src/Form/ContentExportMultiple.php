@@ -3,12 +3,15 @@
 namespace Drupal\content_sync\Form;
 
 use Drupal\content_sync\ContentSyncManagerInterface;
+use Drupal\content_sync\Exporter\ContentExporterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\File\FileSystemInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -22,61 +25,27 @@ class ContentExportMultiple extends ConfirmFormBase {
   use ContentExportTrait;
 
   /**
-   * Entity type manager service.
+   * List on entities pulled from temp store in building and used in submit.
    *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
-   */
-  protected $entityTypeManager;
-
-  /**
-   * Private Temp Store Factory service.
-   *
-   * @var \Drupal\Core\TempStore\PrivateTempStoreFactory
-   */
-  protected $tempStoreFactory;
-
-  /**
-   * @var \Drupal\content_sync\ContentSyncManagerInterface
-   */
-  protected $contentSyncManager;
-
-  /**
-   * @var \Drupal\content_sync_ui\Toolbox\ContentSyncUIToolboxInterface
-   */
-  protected $contentSyncUIToolbox;
-
-  /**
    * @var array
    */
-  protected $entityList = [];
-
-  protected $formats;
+  protected array $entityList = [];
 
   /**
-   * @var \Drupal\Core\File\FileSystemInterface
+   * Constructor.
    */
-  protected FileSystemInterface $fileSystem;
-
-  /**
-   * Constructs a ContentSyncMultiple form object.
-   *
-   * @param \Drupal\Core\TempStore\PrivateTempStoreFactory $temp_store_factory
-   *   The tempstore factory.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $manager
-   *   The entity type manager.
-   */
-  public function __construct(PrivateTempStoreFactory $temp_store_factory, EntityTypeManagerInterface $manager, ContentSyncManagerInterface $content_sync_manager, array $formats, FileSystemInterface $file_system) {
-    $this->tempStoreFactory = $temp_store_factory;
-    $this->entityTypeManager = $manager;
-    $this->contentSyncManager = $content_sync_manager;
-    $this->formats = $formats;
-    $this->fileSystem = $file_system;
-  }
+  public function __construct(
+    protected PrivateTempStoreFactory $tempStoreFactory,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected ContentSyncManagerInterface $contentSyncManager,
+    protected array $formats,
+    protected FileSystemInterface $fileSystem,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
-  public static function create(ContainerInterface $container) {
+  public static function create(ContainerInterface $container) : static {
     return new static(
       $container->get('tempstore.private'),
       $container->get('entity_type.manager'),
@@ -89,38 +58,37 @@ class ContentExportMultiple extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId(): string {
     return 'content_sync_export_multiple_confirm';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getQuestion() {
+  public function getQuestion() : TranslatableMarkup {
     return $this->formatPlural(count($this->entityList), 'Are you sure you want to export this item?', 'Are you sure you want to export these items?');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getCancelUrl() {
-    return new Url('system.admin_content');
+  public function getCancelUrl(): Url {
+    return Url::fromRoute('system.admin_content');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getConfirmText() {
-    return t('Export');
+  public function getConfirmText(): TranslatableMarkup {
+    return $this->t('Export');
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) : array|RedirectResponse {
     $this->entityList = $this->tempStoreFactory->get('content_sync_ui_multiple_confirm')
-      ->get($this->currentUser()
-        ->id());
+      ->get($this->currentUser()->id());
 
     if (empty($this->entityList)) {
       return new RedirectResponse($this->getCancelUrl()
@@ -147,11 +115,10 @@ class ContentExportMultiple extends ConfirmFormBase {
     return $form;
   }
 
-
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) : void {
 
     if ($form_state->getValue('confirm') && !empty($this->entityList)) {
       // Delete the content tar file in case an older version exist.
@@ -165,7 +132,7 @@ class ContentExportMultiple extends ConfirmFormBase {
         ];
       }
       if (!empty($entities_list)) {
-        $batch = $this->generateBatch($entities_list);
+        $batch = $this->generateExportBatch($entities_list);
         batch_set($batch);
       }
     }
@@ -177,21 +144,21 @@ class ContentExportMultiple extends ConfirmFormBase {
   /**
    * {@inheritdoc}
    */
-  protected function getEntityTypeManager() {
+  protected function getEntityTypeManager() : EntityTypeManagerInterface {
     return $this->entityTypeManager;
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function getContentExporter() {
+  protected function getContentExporter() : ContentExporterInterface {
     return $this->contentSyncManager->getContentExporter();
   }
 
   /**
    * {@inheritdoc}
    */
-  protected function getExportLogger() {
+  protected function getExportLogger() : LoggerInterface {
     return $this->logger('content_sync');
   }
 

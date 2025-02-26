@@ -6,11 +6,24 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Symfony\Component\Serializer\Serializer;
 use Drupal\Component\Serialization\Yaml;
 
+/**
+ *
+ */
 class ContentExporter implements ContentExporterInterface {
 
-  protected $format = 'yaml';
+  /**
+   * Serializer format.
+   *
+   * @var string
+   */
+  protected string $format = 'yaml';
 
-  protected $context = [];
+  /**
+   * Serializer context.
+   *
+   * @var array
+   */
+  protected array $context = [];
 
   /**
    * ContentExporter constructor.
@@ -19,11 +32,10 @@ class ContentExporter implements ContentExporterInterface {
     protected Serializer $serializer,
   ) {}
 
-
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
-  public function exportEntity(ContentEntityInterface $entity, array $context = []) {
+  public function exportEntity(ContentEntityInterface $entity, array $context = []): string {
     $context = $this->context + $context;
     // Allows normalizers to know that this is a content sync generated entity.
     $context += [
@@ -31,22 +43,16 @@ class ContentExporter implements ContentExporterInterface {
     ];
 
     $normalized_entity = $this->serializer->serialize($entity, $this->format, $context);
-//    $return = [
-//      'entity_type_id' => $entity->getEntityTypeId(),
-//      'entity' => $this->serializer->encode($normalized_entity, $this->format, $context),
-//      'original_entity' => $entity,
-//    ];
 
-    // Include translations to the normalized entity
+    // Include translations to the normalized entity.
     $yaml_parsed = Yaml::decode($normalized_entity);
     $lang_default = $entity->language()->getId();
     foreach ($entity->getTranslationLanguages() as $langcode => $language) {
       // Verify that it is not the default langcode.
-      if ( $langcode != $lang_default ) {
-        if ( $entity->hasTranslation($langcode) ) {
+      if ($langcode != $lang_default) {
+        if ($entity->hasTranslation($langcode)) {
           $entity_translated = $entity->getTranslation($langcode);
           $normalized_entity_translations = $this->serializer->serialize($entity_translated, $this->format, $context);
-          //$normalized_data['_translations'][$c] = $contentExporter->exportEntity($object_translated, $serializer_context);
           $yaml_parsed['_translations'][$langcode] = Yaml::decode($normalized_entity_translations);
         }
       }
@@ -55,16 +61,16 @@ class ContentExporter implements ContentExporterInterface {
   }
 
   /**
-   * @return string
+   * Format accessor.
    */
-  public function getFormat() {
+  public function getFormat(): string {
     return $this->format;
   }
 
   /**
-   * @return \Symfony\Component\Serializer\Serializer
+   * Serializer accessor.
    */
-  public function getSerializer() {
+  public function getSerializer(): Serializer {
     return $this->serializer;
   }
 

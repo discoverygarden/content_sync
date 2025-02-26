@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\DependencyResolver;
 
-use Drupal\content_sync\Content\ContentDatabaseStorage;
 use Drupal\content_sync\Content\DatabaseStorageInterface;
 use Drupal\Core\DependencyInjection\AutowireTrait;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;

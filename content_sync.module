@@ -7,6 +7,7 @@
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Entity\ContentEntityType;
+use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Url;
 use Drupal\content_sync\Form\ContentExportTrait;
 use Drupal\content_sync\Form\ContentImportTrait;
@@ -230,10 +231,9 @@ function content_sync_entity_update(Drupal\Core\Entity\EntityInterface $entity){
       $name = $entity_type . "." . $entity_bundle . "." . $entity->uuid();
       //Insert/Update Data
       $activeStorage = \Drupal::service('content.storage.active');
-      $activeStorage->cs_write($name, \Drupal\Core\Serialization\Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
+      $activeStorage->cs_write($name, Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
       // Invalidate the CS Cache of the entity.
-      $cache = \Drupal::cache('content')
-        ->invalidate($entity_type . "." . $entity_bundle . ":" . $name);
+      \Drupal::cache('content')->invalidate($entity_type . "." . $entity_bundle . ":" . $name);
     }
   });
 }
@@ -261,7 +261,8 @@ function content_sync_entity_delete(Drupal\Core\Entity\EntityInterface $entity){
     // Update the data for diff
     $name = $entity_type . "." . $entity_bundle . "." . $entity_uuid;
     //Delete Data
-    $activeStorage = new Drupal\content_sync\Content\ContentDatabaseStorage(\Drupal::database(), 'cs_db_snapshot');
+    /** @var \Drupal\content_sync\Content\DatabaseStorage $activeStorage */
+    $activeStorage = \Drupal::service('content.storage.active');
     $activeStorage->cs_delete($name);
     // Invalidate the CS Cache of the entity.
     $cache = \Drupal::cache('content')->invalidate($entity_type.".".$entity_bundle.":".$name);

@@ -1,0 +1,4 @@
+---
+# XXX: Drush services in 12+ are expected to be discovered
+# and constructed by other means.
+services: {}

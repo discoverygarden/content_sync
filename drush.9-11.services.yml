@@ -2,6 +2,7 @@
 services:
   content_sync.commands:
     class: \Drupal\content_sync\Drush\Commands\ContentSyncCommands
+    autowire: true
     arguments:
       - '@content.storage'
       - '@content.storage.sync'
@@ -14,7 +15,6 @@ services:
       - '@config.typed'
       - '@module_installer'
       - '@theme_handler'
-      - '@string_translation'
       - '@content_sync.snaphoshot'
     tags:
       - { name: drush.command }

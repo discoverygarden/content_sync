@@ -13,6 +13,7 @@
     "extra": {
         "drush": {
             "services": {
+                "drush.12.5+.services.yml": ">=12.5",
                 "drush.9-11.services.yml": "^9 || ^10 || ^11"
             }
         }

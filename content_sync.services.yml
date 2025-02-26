@@ -1,4 +1,7 @@
 services:
+  logger.channel.content_sync:
+    parent: logger.channel_base
+    arguments: ['content_sync']
   logger.cslog:
     class: Drupal\content_sync\Logger\ContentSyncLog
     arguments: ['@database', '@logger.log_message_parser']
@@ -19,7 +22,6 @@ services:
   content.storage.active:
     class: Drupal\content_sync\Content\DatabaseStorage
     arguments: ['@database', 'cs_db_snapshot']
-    public: false
     tags:
       - { name: backend_overridable }
   cache.content:
@@ -43,6 +45,7 @@ services:
       arguments: ['@serializer', '@entity_type.manager']
   content_sync.manager:
       class: Drupal\content_sync\ContentSyncManager
+      autowire: true
       arguments: ['@serializer', '@entity_type.manager','@content_sync.exporter', '@content_sync.importer']
   content_sync.resolver.export:
     class: Drupal\content_sync\DependencyResolver\ExportQueueResolver
