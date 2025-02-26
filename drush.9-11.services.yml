@@ -2,7 +2,6 @@
 services:
   content_sync.commands:
     class: \Drupal\content_sync\Drush\Commands\ContentSyncCommands
-    autowire: true
     arguments:
       - '@content.storage'
       - '@content.storage.sync'
