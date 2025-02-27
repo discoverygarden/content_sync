@@ -67,4 +67,5 @@ class UserEntityNormalizer extends ContentEntityNormalizer {
     }
     return $metadata;
   }
+
 }

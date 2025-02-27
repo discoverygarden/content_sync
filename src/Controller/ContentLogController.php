@@ -3,10 +3,12 @@
 namespace Drupal\content_sync\Controller;
 
 use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Component\Utility\Xss;
+use Drupal\content_sync\src\Logger\LogFilterTrait;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\Query\PagerSelectExtender;
+use Drupal\Core\Database\Query\TableSortExtender;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -21,6 +23,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Returns responses for content_sync routes.
  */
 class ContentLogController extends ControllerBase {
+
+  use LogFilterTrait;
 
   /**
    * The database service.
@@ -81,6 +85,11 @@ class ContentLogController extends ControllerBase {
    *   The date formatter service.
    * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
    *   The form builder service.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
+   *   The entity type manager service.
+   *
+   * @throws \Drupal\Component\Plugin\Exception\InvalidPluginDefinitionException
+   * @throws \Drupal\Component\Plugin\Exception\PluginNotFoundException
    */
   public function __construct(Connection $database, ModuleHandlerInterface $module_handler, DateFormatterInterface $date_formatter, FormBuilderInterface $form_builder, EntityTypeManagerInterface $entity_type_manager) {
     $this->database = $database;
@@ -96,7 +105,7 @@ class ContentLogController extends ControllerBase {
    * @return array
    *   An array of log level classes.
    */
-  public static function getLogLevelClassMap() {
+  public static function getLogLevelClassMap() : array {
     return [
       RfcLogLevel::DEBUG => 'cslog-debug',
       RfcLogLevel::INFO => 'cslog-info',
@@ -121,40 +130,37 @@ class ContentLogController extends ControllerBase {
    * @see Drupal\content_sync\Form\logClearLogConfirmForm
    * @see Drupal\content_sync\Controller\LogController::eventDetails()
    */
-  public function overview() {
+  public function overview() : array {
 
     $filter = $this->buildFilterQuery();
     $rows = [];
 
     $classes = static::getLogLevelClassMap();
 
-    $this->moduleHandler->loadInclude('content_sync', 'admin.inc');
-
     $header = [
       // Icon column.
       '',
-    /*  [
-        'data' => $this->t('Type'),
-        'field' => 'w.type',
-        'class' => [RESPONSIVE_PRIORITY_MEDIUM]], */
       [
         'data' => $this->t('Date'),
         'field' => 'w.csid',
         'sort' => 'desc',
-        'class' => [RESPONSIVE_PRIORITY_LOW]],
+        'class' => [RESPONSIVE_PRIORITY_LOW],
+      ],
       $this->t('Message'),
       [
         'data' => $this->t('User'),
         'field' => 'ufd.name',
-        'class' => [RESPONSIVE_PRIORITY_MEDIUM]],
+        'class' => [RESPONSIVE_PRIORITY_MEDIUM],
+      ],
       [
         'data' => $this->t('Operations'),
-        'class' => [RESPONSIVE_PRIORITY_LOW]],
+        'class' => [RESPONSIVE_PRIORITY_LOW],
+      ],
     ];
 
     $query = $this->database->select('cs_logs', 'w')
-      ->extend('\Drupal\Core\Database\Query\PagerSelectExtender')
-      ->extend('\Drupal\Core\Database\Query\TableSortExtender');
+      ->extend(PagerSelectExtender::class)
+      ->extend(TableSortExtender::class);
     $query->fields('w', [
       'csid',
       'uid',
@@ -177,20 +183,7 @@ class ContentLogController extends ControllerBase {
 
     foreach ($result as $log) {
       $message = $this->formatMessage($log);
-      if ($message && isset($log->csid)) {
-        $title = Unicode::truncate(Html::decodeEntities(strip_tags($message)), 256, TRUE, TRUE);
-        $log_text = Unicode::truncate($title, 56, TRUE, TRUE);
-        // The link generator will escape any unsafe HTML entities in the final
-        // text.
-        /*$message = $this->l($log_text, new Url('log.event', ['event_id' => $log->csid], [
-          'attributes' => [
-            // Provide a title for the link for useful hover hints. The
-            // Attribute object will escape any unsafe HTML entities in the
-            // final text.
-            'title' => $title,
-          ],
-        ]));*/
-      }
+
       $username = [
         '#theme' => 'username',
         '#account' => $this->userStorage->load($log->uid),
@@ -216,9 +209,6 @@ class ContentLogController extends ControllerBase {
       '#rows' => $rows,
       '#attributes' => ['id' => 'admin-cslog', 'class' => ['admin-cslog']],
       '#empty' => $this->t('No log messages available.'),
-      //'#attached' => [
-      //  'library' => ['cslog/drupal.cslog'],
-      //],
     ];
     $build['log_pager'] = ['#type' => 'pager'];
 
@@ -248,7 +238,7 @@ class ContentLogController extends ControllerBase {
       $rows = [
         [
           ['data' => $this->t('Type'), 'header' => TRUE],
-          $this->t($cslog->type),
+          $cslog->type,
         ],
         [
           ['data' => $this->t('Date'), 'header' => TRUE],
@@ -299,17 +289,15 @@ class ContentLogController extends ControllerBase {
   /**
    * Builds a query for database log administration filters based on session.
    *
-   * @return array
+   * @return null|array
    *   An associative array with keys 'where' and 'args'.
    */
-  protected function buildFilterQuery() {
+  protected function buildFilterQuery() : ?array {
     if (empty($_SESSION['cslog_overview_filter'])) {
-      return;
+      return NULL;
     }
 
-    $this->moduleHandler->loadInclude('content_sync', 'admin.inc');
-
-    $filters = cs_log_filters();
+    $filters = $this->getFilters();
 
     // Build query.
     $where = $args = [];
@@ -345,7 +333,7 @@ class ContentLogController extends ControllerBase {
   public function formatMessage($row) {
     // Check for required properties.
     if (isset($row->message, $row->variables)) {
-      $variables = @unserialize($row->variables);
+      $variables = @unserialize($row->variables, ['allowed_classes' => FALSE]);
       // Messages without variables or user specified text.
       if ($variables === NULL) {
         $message = Xss::filterAdmin($row->message);
@@ -355,7 +343,7 @@ class ContentLogController extends ControllerBase {
       }
       // Message to translate with injected variables.
       else {
-        $message = $this->t(Xss::filterAdmin($row->message), $variables);
+        $message = strtr(Xss::filterAdmin($row->message), $variables);
       }
     }
     else {
@@ -407,7 +395,7 @@ class ContentLogController extends ControllerBase {
       }
     }
 
-    $build['cs_log_top_table']  = [
+    $build['cs_log_top_table'] = [
       '#type' => 'table',
       '#header' => $header,
       '#rows' => $rows,

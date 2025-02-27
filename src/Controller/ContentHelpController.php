@@ -36,7 +36,7 @@ class ContentHelpController extends ControllerBase implements ContainerInjection
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('content_sync.help_manager')
+      $container->get('content_sync.help_manager'),
     );
   }
 
@@ -47,12 +47,13 @@ class ContentHelpController extends ControllerBase implements ContainerInjection
    *   The current request.
    *
    * @return array
-   *   A renderable array containing a help about (aka How can we help you?) page.
+   *   A renderable array containing a help about (aka How can we help you?)
+   *   page.
    */
   public function about(Request $request) {
     $build = $this->helpManager->buildAbout();
     unset($build['title']);
-    $build +=[
+    $build += [
       '#prefix' => '<div class="content_sync-help">',
       '#suffix' => '</div>',
     ];

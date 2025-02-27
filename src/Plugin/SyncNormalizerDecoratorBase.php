@@ -30,4 +30,5 @@ abstract class SyncNormalizerDecoratorBase extends PluginBase implements SyncNor
   public function decorateDenormalizedEntity(ContentEntityInterface $entity, array $normalized_entity, $format, array $context = []) {
 
   }
+
 }

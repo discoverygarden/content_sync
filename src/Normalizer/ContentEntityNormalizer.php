@@ -23,7 +23,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   use SyncNormalizerDecoratorTrait;
 
   /**
-   * @var SyncNormalizerDecoratorManager
+   * @var \Drupal\content_sync\Plugin\SyncNormalizerDecoratorManager
    */
   protected $decoratorManager;
 
@@ -54,7 +54,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
    *   The entity bundle info.
    * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
    *   The entity repository.
-   * @param SyncNormalizerDecoratorManager $decorator_manager
+   * @param \Drupal\content_sync\Plugin\SyncNormalizerDecoratorManager $decorator_manager
    */
   public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeRepositoryInterface $entity_type_repository, EntityFieldManagerInterface $entity_field_manager, EntityTypeBundleInfoInterface $entity_type_bundle_info, EntityRepositoryInterface $entity_repository, SyncNormalizerDecoratorManager $decorator_manager) {
     parent::__construct($entity_type_manager, $entity_type_repository, $entity_field_manager);
@@ -90,19 +90,19 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
         ->getMainPropertyName() : 'value';
 
       // Normalize the bundle if it is not explicitly set.
-      $bundle = isset($data[$bundle_key][0][$key_id]) ? $data[$bundle_key][0][$key_id] : (isset($data[$bundle_key]) ? $data[$bundle_key] : NULL);
+      $bundle = $data[$bundle_key][0][$key_id] ?? ($data[$bundle_key] ?? NULL);
     }
 
     // Decorate data before denormalizing it.
     $this->decorateDenormalization($data, $entity_type_id, $format, $context);
 
-    // Resolve references
+    // Resolve references.
     $this->fixReferences($data, $entity_type_id, $bundle);
 
-    // Remove invalid fields
+    // Remove invalid fields.
     $this->cleanupData($data, $entity_type_id, $bundle);
 
-    // Data to Entity
+    // Data to Entity.
     $entity = parent::denormalize($data, $class, $format, $context);
 
     // Decorate denormalized entity before retuning it.
@@ -115,7 +115,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
    * {@inheritdoc}
    */
   public function normalize($object, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
-    /* @var ContentEntityInterface $object */
+    /** @var \Drupal\Core\Entity\ContentEntityInterface $object */
     $normalized_data = parent::normalize($object, $format, $context);
 
     $normalized_data['_content_sync'] = $this->getContentSyncMetadata($object, $context);
@@ -171,7 +171,9 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   protected function inDependencies($dependency, $dependencies) {
     [$entity_type_id, $bundle, $uuid] = explode('.', $dependency);
     if (isset($dependencies[$entity_type_id])) {
-      if (in_array($dependency, $dependencies[$entity_type_id])) return TRUE;
+      if (in_array($dependency, $dependencies[$entity_type_id])) {
+        return TRUE;
+      }
     }
     return FALSE;
   }
@@ -180,7 +182,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
    * Gets a node attached to a menu link. The node has already been imported.
    *
    * @param \Drupal\Core\Entity\EntityInterface $object
-   *   Menu Link Entity
+   *   Menu Link Entity.
    *
    * @return bool|\Drupal\Core\Entity\EntityInterface|null
    *   Node Entity.
@@ -221,7 +223,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   protected function getDecoratorManager() {
     return $this->decoratorManager;
@@ -303,16 +305,15 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
     }
   }
 
-
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   public function supportsNormalization($data, $format = NULL, array $context = []): bool {
     return parent::supportsNormalization($data, $format, $context) && ($context['content_sync'] ?? FALSE);
   }
 
   /**
-   * @inheritdoc
+   * {@inheritdoc}
    */
   public function supportsDenormalization($data, $type, $format = NULL, array $context = []): bool {
     return parent::supportsDenormalization($data, $type, $format, $context);

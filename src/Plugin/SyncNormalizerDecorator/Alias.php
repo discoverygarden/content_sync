@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\Plugin\SyncNormalizerDecorator;
 
-
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\path_alias\AliasManager;
@@ -62,7 +61,7 @@ class Alias extends SyncNormalizerDecoratorBase implements ContainerFactoryPlugi
         if (!empty($path_alias) && $path_alias != $system_path) {
           $normalized_entity['path'] = [
             [
-              'alias' => $path_alias
+              'alias' => $path_alias,
             ],
           ];
         }

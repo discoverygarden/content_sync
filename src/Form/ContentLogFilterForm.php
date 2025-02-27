@@ -2,6 +2,7 @@
 
 namespace Drupal\content_sync\Form;
 
+use Drupal\content_sync\src\Logger\LogFilterTrait;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 
@@ -10,10 +11,12 @@ use Drupal\Core\Form\FormStateInterface;
  */
 class ContentLogFilterForm extends FormBase {
 
+  use LogFilterTrait;
+
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId() : string {
     return 'cs_log_filter_form';
   }
 
@@ -21,14 +24,12 @@ class ContentLogFilterForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    //$filters = cs_log_filters();
-
     $form['filters'] = [
       '#type' => 'details',
       '#title' => $this->t('Filter log messages'),
       '#open' => TRUE,
     ];
-    foreach ($filters as $key => $filter) {
+    foreach ($this->getFilters() as $key => $filter) {
       $form['filters']['status'][$key] = [
         '#title' => $filter['title'],
         '#type' => 'select',
@@ -73,8 +74,7 @@ class ContentLogFilterForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-    $filters = cs_log_filters();
-    foreach ($filters as $name => $filter) {
+    foreach ($this->getFilters() as $name => $filter) {
       if ($form_state->hasValue($name)) {
         $_SESSION['cs_log_overview_filter'][$name] = $form_state->getValue($name);
       }

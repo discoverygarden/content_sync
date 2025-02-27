@@ -21,7 +21,7 @@
 
         $widget.accordion({
           header: 'h2',
-          collapsible: true,
+          collapsible: TRUE,
           heightStyle: 'content'
         });
 

@@ -12,6 +12,9 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Serializer\Serializer;
 
+/**
+ * Manager service for content_sync.
+ */
 class ContentSyncManager implements ContentSyncManagerInterface {
 
   use AutowireTrait;
@@ -33,33 +36,37 @@ class ContentSyncManager implements ContentSyncManagerInterface {
   ) {}
 
   /**
-   * @return \Drupal\content_sync\Exporter\ContentExporterInterface
+   * {@inheritDoc}
    */
   public function getContentExporter() : ContentExporterInterface {
     return $this->contentExporter;
   }
 
   /**
-   * @return \Drupal\content_sync\Importer\ContentImporterInterface
+   * {@inheritDoc}
    */
   public function getContentImporter() : ContentImporterInterface {
     return $this->contentImporter;
   }
 
-
   /**
-   * @param $file_names
-   * @param $directory
+   * Generate import queue.
+   *
+   * @param iterable $file_names
+   *   Iterable of filenames to enqueue.
+   * @param string $directory
+   *   Directory in which the files exist.
    *
    * @return array
+   *   An array of items to import.
    */
-  public function generateImportQueue($file_names, $directory) {
+  public function generateImportQueue(iterable $file_names, string $directory) : array {
     $queue = [];
     foreach ($file_names as $file) {
       $ids = explode('.', $file);
-      [$entity_type_id, $bundle, $uuid] = $ids + ['', '', ''];
+      [$entity_type_id, $bundle] = $ids + ['', ''];
       $file_path = $directory . "/" . $entity_type_id . "/" . $bundle . "/" . $file . ".yml";
-      if (!file_exists($file_path) || !$this->isValidFilename($file)) {
+      if (!file_exists($file_path) || !static::isValidFilename($file)) {
         continue;
       }
       $content = file_get_contents($file_path);
@@ -74,12 +81,17 @@ class ContentSyncManager implements ContentSyncManagerInterface {
   }
 
   /**
-   * @param $file_names
-   * @param $directory
+   * Generate export queue.
+   *
+   * @param array $decoded_entities
+   *   File names to enqueue.
+   * @param array $visited
+   *   Already touched entities, when resolving dependencies.
    *
    * @return array
+   *   Array of entity names to export.
    */
-  public function generateExportQueue($decoded_entities, $visited) {
+  public function generateExportQueue(array $decoded_entities, array $visited) : array {
     $queue = [];
     if (!empty($decoded_entities)) {
       $queue = $this->exportResolver->resolve($decoded_entities, $visited);
@@ -88,27 +100,29 @@ class ContentSyncManager implements ContentSyncManagerInterface {
   }
 
   /**
-   * @return \Symfony\Component\Serializer\Serializer
+   * {@inheritDoc}
    */
-  public function getSerializer() {
+  public function getSerializer() : Serializer {
     return $this->serializer;
   }
 
   /**
-   * @return \Drupal\Core\Entity\EntityTypeManagerInterface
+   * {@inheritDoc}
    */
-  public function getEntityTypeManager() {
+  public function getEntityTypeManager() : EntityTypeManagerInterface {
     return $this->entityTypeManager;
   }
 
   /**
-   * Checks filename structure
+   * Checks filename structure.
    *
-   * @param $filename
+   * @param string $filename
+   *   The filename to check.
    *
    * @return bool
+   *   TRUE if valid; otherwise, FALSE.
    */
-  protected function isValidFilename($filename) {
+  protected static function isValidFilename(string $filename) : bool {
     $parts = explode(static::DELIMITER, $filename);
     return count($parts) === 3;
   }

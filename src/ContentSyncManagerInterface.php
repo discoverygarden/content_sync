@@ -2,34 +2,36 @@
 
 namespace Drupal\content_sync;
 
+use Drupal\content_sync\Exporter\ContentExporterInterface;
+use Drupal\content_sync\Importer\ContentImporterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Symfony\Component\Serializer\Serializer;
 
 /**
- * Interface ContentSyncManagerInterface.
- *
- * @package Drupal\content_sync
+ * Manager interface for content_sync.
  */
 interface ContentSyncManagerInterface {
 
   const DEFAULT_DIRECTORY = 'sync';
 
   /**
-   * @return \Drupal\content_sync\Importer\ContentImporterInterface
+   * Get the content importer.
    */
-  public function getContentImporter();
+  public function getContentImporter() : ContentImporterInterface;
 
   /**
-   * @return \Drupal\content_sync\Exporter\ContentExporterInterface
+   * Get the content exporter.
    */
-  public function getContentExporter();
+  public function getContentExporter() : ContentExporterInterface;
 
   /**
-   * @return \Symfony\Component\Serializer\Serializer
+   * Get the serializer.
    */
-  public function getSerializer();
+  public function getSerializer() : Serializer;
 
   /**
-   * @return \Drupal\Core\Entity\EntityTypeManagerInterface
+   * Get the entity type manager.
    */
-  public function getEntityTypeManager();
+  public function getEntityTypeManager() : EntityTypeManagerInterface;
 
 }

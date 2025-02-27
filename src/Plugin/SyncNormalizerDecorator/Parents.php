@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\Plugin\SyncNormalizerDecorator;
 
-
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -67,10 +66,10 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
       }
       elseif (method_exists($entity, 'getParentId')) {
         $parent_id = $entity->getParentId();
-        if (($tmp = strstr($parent_id, ':')) !== false) {
+        if (($tmp = strstr($parent_id, ':')) !== FALSE) {
           $parent_uuid = substr($tmp, 1);
           $parents = $storage->loadByProperties(['uuid' => $parent_uuid]);
-          $parent = !empty($parents) ? reset($parents) : null;
+          $parent = !empty($parents) ? reset($parents) : NULL;
           if (!empty($parent) && !$this->parentExistence($parent_uuid, $normalized_entity)) {
             $normalized_entity['parent'][] = [
               'target_type' => $entity_type,

@@ -7,7 +7,7 @@ use Symfony\Component\Serializer\Serializer;
 use Drupal\Component\Serialization\Yaml;
 
 /**
- *
+ * Content exporter service.
  */
 class ContentExporter implements ContentExporterInterface {
 

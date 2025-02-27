@@ -3,39 +3,52 @@
 namespace Drupal\content_sync\Importer;
 
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\serialization\Normalizer\SerializedColumnNormalizerTrait;
+use Drupal\user\UserInterface;
 use Symfony\Component\Serializer\Serializer;
 
+/**
+ * Content importer service.
+ */
 class ContentImporter implements ContentImporterInterface {
 
   use SerializedColumnNormalizerTrait;
 
-  protected $format = 'yaml';
-
-  protected $updateEntities = TRUE;
-
-  protected $context = [];
+  /**
+   * Valid format.
+   *
+   * @var string
+   */
+  protected string $format = 'yaml';
 
   /**
-   * @var \Symfony\Component\Serializer\Serializer
+   * Flag to apply updates.
+   *
+   * @var bool
    */
-  protected $serializer;
+  protected bool $updateEntities = TRUE;
 
   /**
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * Importer context.
+   *
+   * @var array
    */
-  protected $entityTypeManager;
+  protected array $context = [];
 
   /**
-   * ContentImporter constructor.
+   * Constructor.
    */
-  public function __construct(Serializer $serializer, EntityTypeManagerInterface $entity_type_manager) {
-    $this->serializer = $serializer;
-    $this->entityTypeManager = $entity_type_manager;
-  }
+  public function __construct(
+    protected Serializer $serializer,
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {}
 
-  public function importEntity($decoded_entity, $context = []) {
+  /**
+   * {@inheritDoc}
+   */
+  public function importEntity(array $decoded_entity, array $context = []) : ?ContentEntityInterface {
     $context = $this->context + $context;
 
     if (!empty($context['entity_type'])) {
@@ -49,21 +62,24 @@ class ContentImporter implements ContentImporterInterface {
     }
 
     // Replace a menu link to a node with an actual one.
-    if ($entity_type_id == 'menu_link_content' && !empty($decoded_entity["_content_sync"]["menu_entity_link"])) {
+    if ($entity_type_id === 'menu_link_content' && !empty($decoded_entity["_content_sync"]["menu_entity_link"])) {
       $decoded_entity = $this->alterMenuLink($decoded_entity);
     }
 
     $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
 
-    //Exception for parent null -- allowing the term to be displayed on the taxonomy list.
-    if ($entity_type_id == 'taxonomy_term') {
-      if(empty($decoded_entity['parent'])){
-        $decoded_entity['parent']['target_id'] = 0;
-      }
+    if (!$entity_type instanceof ContentEntityTypeInterface) {
+      return NULL;
     }
 
-    //Get Translations before denormalize
-    if(!empty($decoded_entity['_translations'])){
+    // Exception for parent null, allowing the term to be displayed on the
+    // taxonomy list.
+    if (($entity_type_id === 'taxonomy_term') && empty($decoded_entity['parent'])) {
+      $decoded_entity['parent']['target_id'] = 0;
+    }
+
+    // Get Translations before denormalize.
+    if (!empty($decoded_entity['_translations'])) {
       $entity_translations = $decoded_entity['_translations'];
     }
 
@@ -71,15 +87,15 @@ class ContentImporter implements ContentImporterInterface {
 
     if (!empty($entity)) {
       // Prevent Anonymous User from being saved.
-      if ($entity_type_id == 'user' && !$entity->isNew() && (int) $entity->id() === 0) {
+      if ($entity_type_id === 'user' && !$entity->isNew() && (int) $entity->id() === 0) {
         return $entity;
       }
       $entity = $this->syncEntity($entity);
     }
 
-    // Include Translations
-    if ($entity){
-      if ( isset($entity_translations) && is_array($entity_translations) ) {
+    // Include Translations.
+    if ($entity) {
+      if (isset($entity_translations) && is_array($entity_translations)) {
         $this->updateTranslation($entity, $entity_type, $entity_translations, $context);
       }
     }
@@ -89,16 +105,21 @@ class ContentImporter implements ContentImporterInterface {
   /**
    * Updates translations.
    *
-   * @param $entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   An entity object.
-   * @param \Drupal\Core\Entity\ContentEntityType $entity_type
+   * @param \Drupal\Core\Entity\ContentEntityTypeInterface $entity_type
    *   A ContentEntityType object.
    * @param array $entity_translations
    *   An array of translations.
-   * @param $context
-   *   The batch context.
+   * @param array $context
+   *   The importer context.
    */
-  protected function updateTranslation(&$entity, $entity_type, $entity_translations, $context) {
+  protected function updateTranslation(
+    ContentEntityInterface $entity,
+    ContentEntityTypeInterface $entity_type,
+    array $entity_translations,
+    array $context,
+  ) : void {
     foreach ($entity_translations as $langcode => $translation) {
       // Denormalize.
       $translation = $this->serializer->denormalize($translation, $entity_type->getClass(), $this->format, $context);
@@ -110,10 +131,8 @@ class ContentImporter implements ContentImporterInterface {
       $fields = $translation->getFieldDefinitions();
 
       foreach ($translation as $itemID => $item) {
-        if ($entity_translation->hasField($itemID)){
-          if ($fields[$itemID]->isTranslatable() == TRUE){
-            $entity_translation->$itemID->setValue($item->getValue());
-          }
+        if ($entity_translation->hasField($itemID) && $fields[$itemID]->isTranslatable() == TRUE) {
+          $entity_translation->{$itemID}->setValue($item->getValue());
         }
       }
 
@@ -138,7 +157,7 @@ class ContentImporter implements ContentImporterInterface {
    * @return array
    *   Array of entity values with the link values changed.
    */
-  protected function alterMenuLink(array $decoded_entity) {
+  protected function alterMenuLink(array $decoded_entity) : array {
     $referenced_entity_uuid = reset($decoded_entity["_content_sync"]["menu_entity_link"]);
     $referenced_entity_type = key($decoded_entity["_content_sync"]["menu_entity_link"]);
     if ($referenced_entity = \Drupal::service('entity.repository')->loadEntityByUuid($referenced_entity_type, $referenced_entity_uuid)) {
@@ -149,28 +168,31 @@ class ContentImporter implements ContentImporterInterface {
   }
 
   /**
+   * Get the format.
+   *
    * @return string
+   *   The format.
    */
-  public function getFormat() {
+  public function getFormat() : string {
     return $this->format;
   }
 
   /**
    * Synchronize a given entity.
    *
-   * @param ContentEntityInterface $entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The entity to update.
    *
-   * @return ContentEntityInterface
+   * @return \Drupal\Core\Entity\ContentEntityInterface|null
    *   The updated entity
    */
-  protected function syncEntity(ContentEntityInterface $entity) {
+  protected function syncEntity(ContentEntityInterface $entity) : ?ContentEntityInterface {
     $preparedEntity = $this->prepareEntity($entity);
     if ($this->validateEntity($preparedEntity)) {
       $preparedEntity->save();
       return $preparedEntity;
     }
-    elseif (!$preparedEntity->isNew()) {
+    if (!$preparedEntity->isNew()) {
       return $preparedEntity;
     }
     return NULL;
@@ -179,13 +201,13 @@ class ContentImporter implements ContentImporterInterface {
   /**
    * Serializes fields which have to be stored serialized.
    *
-   * @param $entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The entity to update.
    *
-   * @return mixed
+   * @return \Drupal\Core\Entity\ContentEntityInterface
    *   The entity with the fields being serialized.
    */
-  protected function processSerializedFields($entity) {
+  protected function processSerializedFields(ContentEntityInterface $entity) : ContentEntityInterface {
     foreach ($entity->getTypedData() as $name => $field_items) {
       foreach ($field_items as $field_item) {
         // The field to be stored in a serialized way.
@@ -201,10 +223,10 @@ class ContentImporter implements ContentImporterInterface {
   /**
    * {@inheritdoc}
    */
-  public function prepareEntity(ContentEntityInterface $entity) {
+  public function prepareEntity(ContentEntityInterface $entity) : ContentEntityInterface {
     $uuid = $entity->uuid();
     $original_entity = $this->entityTypeManager->getStorage($entity->getEntityTypeId())
-                                               ->loadByProperties(['uuid' => $uuid]);
+      ->loadByProperties(['uuid' => $uuid]);
 
     if (!empty($original_entity)) {
       $original_entity = reset($original_entity);
@@ -217,7 +239,7 @@ class ContentImporter implements ContentImporterInterface {
         foreach ($entity->_restSubmittedFields as $field_name) {
           if ($this->isValidEntityField($original_entity, $entity, $field_name)) {
             $original_entity->set($field_name, $entity->get($field_name)
-                                                      ->getValue());
+              ->getValue());
           }
         }
       }
@@ -233,9 +255,9 @@ class ContentImporter implements ContentImporterInterface {
   /**
    * Checks if the entity field needs to be synchronized.
    *
-   * @param ContentEntityInterface $original_entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $original_entity
    *   The original entity.
-   * @param ContentEntityInterface $entity
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
    *   The entity.
    * @param string $field_name
    *   The field name.
@@ -243,7 +265,7 @@ class ContentImporter implements ContentImporterInterface {
    * @return bool
    *   True if the field needs to be synced.
    */
-  protected function isValidEntityField(ContentEntityInterface $original_entity, ContentEntityInterface $entity, $field_name) {
+  protected function isValidEntityField(ContentEntityInterface $original_entity, ContentEntityInterface $entity, string $field_name) : bool {
     $valid = TRUE;
     $entity_keys = $entity->getEntityType()->getKeys();
     // Check if the target entity has the field.
@@ -257,7 +279,7 @@ class ContentImporter implements ContentImporterInterface {
     elseif (in_array($field_name, $entity_keys, TRUE)) {
       // Unchanged values for entity keys don't need access checking.
       if ($original_entity->get($field_name)
-                          ->getValue() === $entity->get($field_name)->getValue()
+        ->getValue() === $entity->get($field_name)->getValue()
           // It is not possible to set the language to NULL as it is
           // automatically re-initialized.
           // As it must not be empty, skip it if it is.
@@ -275,24 +297,28 @@ class ContentImporter implements ContentImporterInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * Perform entity validation.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity to validate.
+   *
+   * @return bool
+   *   TRUE if valid; otherwise, FALSE. NOTE: We presently only validate user
+   *   entities.
    */
-  public function validateEntity(ContentEntityInterface $entity) {
-    $reflection = new \ReflectionClass($entity);
+  public function validateEntity(ContentEntityInterface $entity) : bool {
     $valid = TRUE;
-    if ($reflection->implementsInterface('\Drupal\user\UserInterface')) {
+    if ($entity instanceof UserInterface) {
       $validations = $entity->validate();
       if (count($validations)) {
-        /**
-         * @var ConstraintViolation $validation
-         */
+        /** @var \Symfony\Component\Validator\ConstraintViolation $validation */
         foreach ($validations as $validation) {
           if (!empty($this->getContext()['skipped_constraints']) && in_array(get_class($validation->getConstraint()), $this->getContext()['skipped_constraints'])) {
             continue;
           }
           $valid = FALSE;
           \Drupal::logger('content_sync')
-                 ->error($validation->getMessage());
+            ->error($validation->getMessage());
         }
       }
     }
@@ -300,16 +326,22 @@ class ContentImporter implements ContentImporterInterface {
   }
 
   /**
+   * Get context.
+   *
    * @return array
+   *   The context.
    */
-  public function getContext() {
+  public function getContext() : array {
     return $this->context;
   }
 
   /**
+   * Set context.
+   *
    * @param array $context
+   *   The context.
    */
-  public function setContext($context) {
+  public function setContext(array $context) : void {
     $this->context = $context;
   }
 

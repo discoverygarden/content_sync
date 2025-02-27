@@ -79,6 +79,7 @@ class ContentSyncCommands extends DrushCommands {
    * {@inheritdoc}
    */
   protected function getExportLogger(): LoggerInterface {
+    // phpcs:ignore DrupalPractice.Objects.GlobalDrupal.GlobalDrupal
     return $this->logger() ?? \Drupal::logger('content_sync');
   }
 
@@ -120,6 +121,7 @@ class ContentSyncCommands extends DrushCommands {
    * @hook interact @interact-content-label
    */
   public function interactContentLabel(InputInterface $input, ConsoleOutputInterface $output) : void {
+    // phpcs:ignore Drupal.NamingConventions.ValidGlobal.GlobalUnderScore
     global $content_directories;
 
     if (empty($input->getArgument('label'))) {
@@ -127,11 +129,11 @@ class ContentSyncCommands extends DrushCommands {
       $choices = array_combine($keys, $keys);
       if (count($choices) >= 2) {
         $label = $this->io()->choice('Choose a content_sync directory:', $choices);
-        $input->setArgument('label', $label);
       }
       else {
         $label = ContentSyncManagerInterface::DEFAULT_DIRECTORY;
       }
+      $input->setArgument('label', $label);
     }
   }
 

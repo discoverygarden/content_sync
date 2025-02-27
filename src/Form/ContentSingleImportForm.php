@@ -15,24 +15,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ContentSingleImportForm extends FormBase {
 
   /**
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * Constructor.
    */
-  protected $entityTypeManager;
+  public function __construct(
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected ContentImporterInterface $contentImporter,
+  ) {}
 
   /**
-   * @var \Drupal\content_sync\Importer\ContentImporterInterface
+   * {@inheritDoc}
    */
-  protected $contentImporter;
-
-  /**
-   * ContentImportForm constructor.
-   */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, ContentImporterInterface $content_importer) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->contentImporter = $content_importer;
-  }
-
-  public static function create(ContainerInterface $container) {
+  public static function create(ContainerInterface $container) : self {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('content_sync.importer')
@@ -42,14 +35,14 @@ class ContentSingleImportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId() : string {
     return 'content_single_import_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) : array {
     $form['import'] = [
       '#title' => $this->t('Paste your content here'),
       '#type' => 'textarea',
@@ -69,29 +62,30 @@ class ContentSingleImportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state) : void {
     try {
       // Decode the submitted import.
       $data = Yaml::decode($form_state->getValue('import'));
       // Store the decoded version of the submitted import.
       $form_state->setValueForElement($form['import'], $data);
       if (empty($data['_content_sync']['entity_type'])) {
-        throw new \Exception($this->t('Entity type could not be determined.'));
+        throw new \Exception('Entity type could not be determined.');
       }
-    } catch (\Exception $e) {
+    }
+    catch (\Exception $e) {
       $form_state->setErrorByName('import', $this->t('The import failed with the following message: %message', ['%message' => $e->getMessage()]));
       $this->logger('content_sync')
-           ->error('The import failed with the following message: %message', [
-             '%message' => $e->getMessage(),
-             'link' => 'Import Single',
-           ]);
+        ->error('The import failed with the following message: %message', [
+          '%message' => $e->getMessage(),
+          'link' => 'Import Single',
+        ]);
     }
   }
 
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) : void {
     $data = $form_state->getValue('import');
     $entity = $this->contentImporter->importEntity($data);
     if ($entity) {
@@ -105,4 +99,5 @@ class ContentSingleImportForm extends FormBase {
       $this->messenger()->addError($this->t('Entity could not be imported.'));
     }
   }
+
 }

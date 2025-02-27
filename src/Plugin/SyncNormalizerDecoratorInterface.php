@@ -20,7 +20,6 @@ interface SyncNormalizerDecoratorInterface extends PluginInspectionInterface {
    */
   public function decorateDenormalization(array &$normalized_entity, $type, $format, array $context = []);
 
-
   /**
    * Apply decoration to the entity after the denormalization process is done.
    */

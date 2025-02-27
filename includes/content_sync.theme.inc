@@ -4,21 +4,9 @@
  * @file
  * Preprocessors and helper functions to make theming easier.
  */
-use Drupal\Core\Link;
-use Drupal\Core\Render\Element;
-use Drupal\Core\Url;
-use Drupal\Core\Serialization\Yaml;
-use Drupal\Core\Template\Attribute;
-use Drupal\Component\Utility\Xss;
-use Drupal\webform\Element\WebformCodeMirror;
-use Drupal\webform\WebformMessageManagerInterface;
-use Drupal\webform\Utility\WebformYaml;
-use Drupal\webform\Utility\WebformDateHelper;
-use Drupal\webform\Utility\WebformDialogHelper;
-use Drupal\webform\Utility\WebformElementHelper;
 
 /**
- * Prepares variables for contnt sync help.
+ * Prepares variables for content_sync_help templates.
  *
  * Default template: content_sync_help.html.twig.
  *
@@ -27,7 +15,7 @@ use Drupal\webform\Utility\WebformElementHelper;
  *   - title: Help title.
  *   - content: Help content.
  */
-function template_preprocess_content_sync_help(array &$variables) {
+function template_preprocess_content_sync_help(array &$variables) : void {
   /** @var \Drupal\content_sync\ContentSyncHelpManagerInterface $help_manager */
   $help_manager = \Drupal::service('content_sync.help_manager');
 
@@ -51,12 +39,8 @@ function template_preprocess_content_sync_help(array &$variables) {
   $variables['help'] = $help;
 }
 
-/******************************************************************************/
-// Element templates
-/******************************************************************************/
-
 /**
- * Prepares variables for Content Sync message templates.
+ * Prepares variables for content_sync_message templates.
  *
  * Default template: content-sync-message.html.twig.
  *
@@ -67,7 +51,7 @@ function template_preprocess_content_sync_help(array &$variables) {
  *
  * @see template_preprocess_container()
  */
-function template_preprocess_content_sync_message(array &$variables) {
+function template_preprocess_content_sync_message(array &$variables) : void {
   $variables['has_parent'] = FALSE;
   $element = $variables['element'];
   // Ensure #attributes is set.
@@ -87,4 +71,5 @@ function template_preprocess_content_sync_message(array &$variables) {
   if (isset($element['#closed'])) {
     $variables['closed'] = $element['#closed'];
   }
+
 }

@@ -2,7 +2,6 @@
 
 namespace Drupal\content_sync\Plugin\SyncNormalizerDecorator;
 
-
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorBase;
 use Drupal\Core\Entity\ContentEntityInterface;
 
@@ -46,15 +45,15 @@ class IdsCleaner extends SyncNormalizerDecoratorBase {
       }
       if (isset($normalized_entity[$field_name]) && !empty($normalized_entity[$field_name]) && is_array($normalized_entity[$field_name])) {
         $entity_type = $field_definition->getFieldStorageDefinition()
-                                        ->getSetting('target_type');
+          ->getSetting('target_type');
         $reflection = new \ReflectionClass(\Drupal::entityTypeManager()
-                                                  ->getDefinition($entity_type)
-                                                  ->getClass());
+          ->getDefinition($entity_type)
+          ->getClass());
         if (!$reflection->implementsInterface('\Drupal\Core\Entity\ContentEntityInterface')) {
           continue;
         }
         $key = $field_definition->getFieldStorageDefinition()
-                                ->getMainPropertyName();
+          ->getMainPropertyName();
         foreach ($normalized_entity[$field_name] as &$item) {
           if (!empty($item[$key])) {
             unset($item[$key]);
@@ -67,7 +66,6 @@ class IdsCleaner extends SyncNormalizerDecoratorBase {
     }
     return $normalized_entity;
   }
-
 
   /**
    * @param $normalized_entity
@@ -85,4 +83,5 @@ class IdsCleaner extends SyncNormalizerDecoratorBase {
     }
     return $normalized_entity;
   }
+
 }

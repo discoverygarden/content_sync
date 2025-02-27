@@ -34,4 +34,5 @@ class ContentElementController extends ControllerBase {
     ContentSyncMessage::setClosed($storage, $id);
     return new AjaxResponse();
   }
+
 }

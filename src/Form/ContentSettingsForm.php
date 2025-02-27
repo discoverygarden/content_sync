@@ -5,6 +5,9 @@ namespace Drupal\content_sync\Form;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 
+/**
+ * Admin settings form.
+ */
 class ContentSettingsForm extends ConfigFormBase {
 
   /**
@@ -21,12 +24,12 @@ class ContentSettingsForm extends ConfigFormBase {
     $form = parent::buildForm($form, $form_state);
     $config = $this->config('content_sync.settings');
 
-    $form['site_uuid_override'] = array(
+    $form['site_uuid_override'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Bypass site UUID validation'),
       '#description' => $this->t('If checked, site UUID validation would be ignored allowing to import the staged content even if it originates from a different site than this site.'),
       '#default_value' => $config->get('content_sync.site_uuid_override'),
-    );
+    ];
     $form['help_menu_disabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Disable help menu'),

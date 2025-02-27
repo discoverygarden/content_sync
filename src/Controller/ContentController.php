@@ -12,96 +12,48 @@ use Drupal\Core\Url;
 use Drupal\Core\File\FileSystemInterface;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\Mime\Header\Headers;
+use Symfony\Component\Mime\MimeTypeGuesserInterface;
 
 /**
  * Returns responses for content module routes.
  */
 class ContentController implements ContainerInjectionInterface {
-  /**
-   * The target storage.
-   *
-   * @var \Drupal\Core\Config\StorageInterface
-   */
-  protected $targetStorage;
 
   /**
-   * The source storage.
-   *
-   * @var \Drupal\Core\Config\StorageInterface
+   * {@inheritDoc}
    */
-  protected $sourceStorage;
-
-  /**
-   * The content manager.
-   *
-   * @var \Drupal\Core\Config\ConfigManagerInterface
-   */
-  protected $contentManager;
-
-  /**
-   * The file download controller.
-   *
-   * @var \Drupal\system\FileDownloadController
-   */
-  protected $fileDownloadController;
-
-  /**
-   * The diff formatter.
-   *
-   * @var \Drupal\Core\Diff\DiffFormatter
-   */
-  protected $diffFormatter;
-
-  /**
-   * The filesystem service.
-   *
-   * @var \Drupal\Core\File\FileSystemInterface
-   */
-  protected FileSystemInterface $fileSystem;
-
-    /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container) {
+  public static function create(ContainerInterface $container) : self {
     return new static(
       $container->get('content.storage'),
       $container->get('content.storage.sync'),
       $container->get('config.manager'),
       $container->get('diff.formatter'),
-      $container->get('file_system')
+      $container->get('file_system'),
+      $container->get('file.mime_type.guesser'),
     );
   }
 
   /**
-   * Constructs a ContentController object.
-   *
-   * @param \Drupal\Core\Config\StorageInterface $target_storage
-   *   The target storage.
-   * @param \Drupal\Core\Config\StorageInterface $source_storage
-   *   The source storage
-   * @param \Drupal\system\FileDownloadController $file_download_controller
-   *   The file download controller.
+   * Constructor.
    */
-  public function __construct(StorageInterface $target_storage, StorageInterface $source_storage, ConfigManagerInterface $content_manager, DiffFormatter $diff_formatter, FileSystemInterface $file_system) {
-    $this->targetStorage = $target_storage;
-    $this->sourceStorage = $source_storage;
-    $this->contentManager = $content_manager;
-    $this->diffFormatter = $diff_formatter;
-    $this->fileSystem = $file_system;
-  }
+  public function __construct(
+    protected StorageInterface $targetStorage,
+    protected StorageInterface $sourceStorage,
+    protected ConfigManagerInterface $contentManager,
+    protected DiffFormatter $diffFormatter,
+    protected FileSystemInterface $fileSystem,
+    protected MimeTypeGuesserInterface $mimeTypeGuesser,
+  ) {}
 
   /**
    * Downloads a tarball of the site content.
    */
-  public function downloadExport() {
-    // NOTE:  Getting - You are not authorized to access this page.
-    //$request = new Request(['file' => 'content.tar.gz']);
-    //return $this->fileDownloadController->download($request, 'temporary');
+  public function downloadExport() : BinaryFileResponse|int {
     $filename = 'content.tar.gz';
     $file_path = $this->fileSystem->getTempDirectory() . '/' . $filename;
-    if (file_exists($file_path) ) {
+    if (file_exists($file_path)) {
       unset($_SESSION['content_tar_download_file']);
-      $mime = \Drupal::service('file.mime_type.guesser')->guess($file_path);
+      $mime = $this->mimeTypeGuesser->guessMimeType($file_path);
       $headers = (new Headers())
         ->addParameterizedHeader('Content-Type', $mime, ['name' => basename($file_path)])
         ->addTextHeader('Content-Length', filesize($file_path))
@@ -129,10 +81,11 @@ class ContentController implements ContainerInjectionInterface {
    *   (optional) The content collection name. Defaults to the default
    *   collection.
    *
-   * @return string
-   *   Table showing a two-way diff between the active and staged content.
+   * @return array
+   *   Renderable array with table showing a two-way diff between the active and
+   *   staged content.
    */
-  public function diff($source_name, $target_name = NULL, $collection = NULL) {
+  public function diff($source_name, $target_name = NULL, $collection = NULL) : array {
     if (!isset($collection)) {
       $collection = StorageInterface::DEFAULT_COLLECTION;
     }
@@ -141,7 +94,7 @@ class ContentController implements ContainerInjectionInterface {
 
     $build = [];
 
-    $build['#title'] = t('View changes of @content_file', ['@content_file' => $source_name]);
+    $build['#title'] = $this->t('View changes of @content_file', ['@content_file' => $source_name]);
     // Add the CSS for the inline diff.
     $build['#attached']['library'][] = 'system/diff';
 
@@ -151,8 +104,8 @@ class ContentController implements ContainerInjectionInterface {
         'class' => ['diff'],
       ],
       '#header' => [
-        ['data' => t('Active'), 'colspan' => '2'],
-        ['data' => t('Staged'), 'colspan' => '2'],
+        ['data' => $this->t('Active'), 'colspan' => '2'],
+        ['data' => $this->t('Staged'), 'colspan' => '2'],
       ],
       '#rows' => $this->diffFormatter->format($diff),
     ];

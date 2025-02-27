@@ -2,16 +2,24 @@
 
 namespace Drupal\content_sync\Importer;
 
+use Drupal\Core\Entity\ContentEntityInterface;
 
+/**
+ * Content importer service interface.
+ */
 interface ContentImporterInterface {
 
   /**
-   * @param $decoded_entity
-   * @param $entity_type_id
-   * @param array $context
+   * Import entity.
    *
-   * @return \Drupal\Core\Entity\ContentEntityInterface
+   * @param array $decoded_entity
+   *   The data describing the entity to create/import.
+   * @param array $context
+   *   Context around the import operation.
+   *
+   * @return \Drupal\Core\Entity\ContentEntityInterface|null
+   *   The loaded, imported entity on success; otherwise, NULL.
    */
-  public function importEntity($decoded_entity, $context = []);
+  public function importEntity(array $decoded_entity, array $context = []) : ?ContentEntityInterface;
 
 }

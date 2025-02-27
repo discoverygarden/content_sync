@@ -3,7 +3,6 @@
 namespace Drupal\content_sync\Utility;
 
 use Drupal\Component\Serialization\Json;
-use Drupal\imce\Imce;
 
 /**
  * Helper class for dialog methods.
@@ -15,18 +14,20 @@ class ContentSyncDialogHelper {
    *
    * @var string
    */
-  protected static $offCanvasTriggerName;
+  protected static string $offCanvasTriggerName;
 
   /**
    * Get Off canvas trigger name.
    *
+   * Dealing with issue #2862625: Rename offcanvas to two words in code and
+   * comments.
+   *
    * @return string
    *   The off canvas trigger name.
    *
-   * @see Issue #2862625: Rename offcanvas to two words in code and comments.
    * @see https://www.drupal.org/node/2862625
    */
-  public static function getOffCanvasTriggerName() {
+  public static function getOffCanvasTriggerName() : string {
     if (isset(self::$offCanvasTriggerName)) {
       return self::$offCanvasTriggerName;
     }
@@ -49,8 +50,8 @@ class ContentSyncDialogHelper {
    * @return bool
    *   TRUE if outside_in.module is enabled and system trays are not disabled.
    */
-  public static function useOffCanvas() {
-    return ((floatval(\Drupal::VERSION) >= 8.3) && \Drupal::moduleHandler()->moduleExists('outside_in') && !\Drupal::config('content_sync.settings')->get('ui.offcanvas_disabled')) ? TRUE : FALSE;
+  public static function useOffCanvas() : bool {
+    return (((float) \Drupal::VERSION >= 8.3) && \Drupal::moduleHandler()->moduleExists('outside_in') && !\Drupal::config('content_sync.settings')->get('ui.offcanvas_disabled'));
   }
 
   /**
@@ -59,7 +60,7 @@ class ContentSyncDialogHelper {
    * @param array $build
    *   A render array.
    */
-  public static function attachLibraries(array &$build) {
+  public static function attachLibraries(array &$build) : void {
     $build['#attached']['library'][] = 'content_sync/content_sync.admin.dialog';
   }
 
@@ -74,7 +75,7 @@ class ContentSyncDialogHelper {
    * @return array
    *   Modal dialog attributes.
    */
-  public static function getModalDialogAttributes($width = 800, array $class = []) {
+  public static function getModalDialogAttributes(int $width = 800, array $class = []) : array {
     if (\Drupal::config('content_sync.settings')->get('ui.dialog_disabled')) {
       return $class ? ['class' => $class] : [];
     }

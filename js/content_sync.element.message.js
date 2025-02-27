@@ -43,24 +43,24 @@
 
   function isClosed($element, storage, id) {
     if (!id || !storage) {
-      return false;
+      return FALSE;
     }
 
     switch (storage) {
       case 'local':
         if (window.localStorage) {
-          return localStorage.getItem('Drupal.content_sync.message.' + id) || false;
+          return localStorage.getItem('Drupal.content_sync.message.' + id) || FALSE;
         }
-        return false;
+        return FALSE;
 
       case 'session':
         if (window.sessionStorage) {
-          return sessionStorage.getItem('Drupal.content_sync.message.' + id) || false;
+          return sessionStorage.getItem('Drupal.content_sync.message.' + id) || FALSE;
         }
-        return false;
+        return FALSE;
 
       default:
-        return false;
+        return FALSE;
     }
   }
 
@@ -72,20 +72,20 @@
     switch (storage) {
       case 'local':
         if (window.localStorage) {
-          localStorage.setItem('Drupal.content_sync.message.' + id, true);
+          localStorage.setItem('Drupal.content_sync.message.' + id, TRUE);
         }
         break;
 
       case 'session':
         if (window.sessionStorage) {
-          sessionStorage.setItem('Drupal.content_sync.message.' + id, true);
+          sessionStorage.setItem('Drupal.content_sync.message.' + id, TRUE);
         }
         break;
 
       case 'user':
       case 'state':
         $.get($element.find('.js-content_sync-message__link').attr('href'));
-        return true;
+        return TRUE;
     }
   }
 

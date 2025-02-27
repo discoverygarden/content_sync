@@ -49,7 +49,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
     EntityRepositoryInterface $entity_repository,
     SyncNormalizerDecoratorManager $decorator_manager,
     FileSystemInterface $file_system,
-    FileUrlGeneratorInterface $file_url_generator
+    FileUrlGeneratorInterface $file_url_generator,
   ) {
     parent::__construct($entity_type_manager, $entity_type_repository, $entity_field_manager, $entity_type_bundle_info, $entity_repository, $decorator_manager);
     $this->fileSystem = $file_system;
@@ -59,7 +59,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function denormalize($data, $class, $format = NULL, array $serializer_context = array()) : mixed {
+  public function denormalize($data, $class, $format = NULL, array $serializer_context = []) : mixed {
 
     $file_data = '';
 
@@ -74,7 +74,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
     if (!empty($serializer_context['content_sync_directory_files'])) {
       $scheme = \Drupal::service('stream_wrapper_manager')->getScheme($data['uri'][0]['value']);
       if (!empty($scheme)) {
-        $source_path = realpath($serializer_context['content_sync_directory_files']) . '/' .$scheme . '/';
+        $source_path = realpath($serializer_context['content_sync_directory_files']) . '/' . $scheme . '/';
         $source      = str_replace($scheme . '://', $source_path, $data['uri'][0]['value']);
         if (file_exists($source)) {
           $file = $this->fileSystem->realpath($data['uri'][0]['value']);
@@ -85,8 +85,8 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
             $data['uri'] = [
               [
                 'value' => $uri,
-                'url' => str_replace($GLOBALS['base_url'], '', $this->fileUrlGenerator->generateString($uri))
-              ]
+                'url' => str_replace($GLOBALS['base_url'], '', $this->fileUrlGenerator->generateString($uri)),
+              ],
             ];
 
             // We just need one method to create the image.
@@ -114,16 +114,16 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
 
     // If the image was sent as URL we must to create the physical file.
     /*if ($file_data) {
-      // Decode and save to file.
-      $file_contents = base64_decode($file_data);
-      $dirname = $this->fileSystem->dirname($entity->getFileUri());
-      file_prepare_directory($dirname, FILE_CREATE_DIRECTORY);
-      if ($uri = file_unmanaged_save_data($file_contents, $entity->getFileUri())) {
-        $entity->setFileUri($uri);
-      }
-      else {
-        throw new \RuntimeException(SafeMarkup::format('Failed to write @filename.', array('@filename' => $entity->getFilename())));
-      }
+    // Decode and save to file.
+    $file_contents = base64_decode($file_data);
+    $dirname = $this->fileSystem->dirname($entity->getFileUri());
+    file_prepare_directory($dirname, FILE_CREATE_DIRECTORY);
+    if ($uri = file_unmanaged_save_data($file_contents, $entity->getFileUri())) {
+    $entity->setFileUri($uri);
+    }
+    else {
+    throw new \RuntimeException(SafeMarkup::format('Failed to write @filename.', array('@filename' => $entity->getFilename())));
+    }
     }*/
 
     return $entity;
@@ -132,7 +132,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $serializer_context = array()) : float|int|bool|\ArrayObject|array|string|null {
+  public function normalize($object, $format = NULL, array $serializer_context = []) : float|int|bool|\ArrayObject|array|string|null {
     $data = parent::normalize($object, $format, $serializer_context);
 
     // The image will be saved in the export directory.

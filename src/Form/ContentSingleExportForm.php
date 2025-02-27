@@ -3,15 +3,14 @@
 namespace Drupal\content_sync\Form;
 
 use Drupal\content_sync\Exporter\ContentExporterInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\EntityTypeBundleInfo;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Entity\ContentEntityType;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
-
 
 /**
  * Provides a form for exporting a single content file.
@@ -19,38 +18,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class ContentSingleExportForm extends FormBase {
 
   /**
-   * The entity type manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   * Constructor.
    */
-  protected $entityTypeManager;
-
-  /**
-   * The entity bundle manager.
-   *
-   * @var \Drupal\Core\Entity\EntityTypeBundleInfo
-   */
-  protected $entityBundleManager;
-
-  /**
-   * @var \Drupal\content_sync\Exporter\ContentExporterInterface
-   */
-  protected $contentExporter;
-
-  /**
-   * Constructs a new ContentSingleExportForm.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entity_type_manager
-   *
-   * @param \Drupal\Core\Entity\EntityTypeBundleInfo $entity_bundle_manager
-   *
-   * @param \Drupal\content_sync\Exporter\ContentExporterInterface $content_exporter
-   */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, EntityTypeBundleInfo $entity_bundle_manager, ContentExporterInterface $content_exporter) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->entityBundleManager = $entity_bundle_manager;
-    $this->contentExporter = $content_exporter;
-  }
+  public function __construct(
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected EntityTypeBundleInfoInterface $entityBundleManager,
+    protected ContentExporterInterface $contentExporter,
+    protected LanguageManagerInterface $languageManager,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -59,21 +34,22 @@ class ContentSingleExportForm extends FormBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('entity_type.bundle.info'),
-      $container->get('content_sync.exporter')
+      $container->get('content_sync.exporter'),
+      $container->get('language_manager'),
     );
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId() : string {
     return 'config_single_export_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $content_type = 'node', $content_name = NULL, $content_entity = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, $content_type = 'node', $content_name = NULL, $content_entity = NULL) : array {
     $entity_types = [];
     $entity_type_definitions = $this->entityTypeManager->getDefinitions();
     foreach ($entity_type_definitions as $entity_type => $definition) {
@@ -89,7 +65,7 @@ class ContentSingleExportForm extends FormBase {
       '#type' => 'select',
       '#options' => $content_types,
       '#default_value' => $content_type,
-      '#attributes' => array('onchange' => 'this.form.content_name.value = null; if(this.form.content_entity){ this.form.content_entity.value = null; } this.form.export.value = null; this.form.submit();'),
+      '#attributes' => ['onchange' => 'this.form.content_name.value = null; if(this.form.content_entity){ this.form.content_entity.value = null; } this.form.export.value = null; this.form.submit();'],
     ];
 
     $default_type = $form_state->getValue('content_type', $content_type);
@@ -99,11 +75,11 @@ class ContentSingleExportForm extends FormBase {
       '#type' => 'select',
       '#options' => $this->findContent($default_type),
       '#default_value' => $content_name,
-      '#attributes' => array('onchange' => 'if(this.form.content_entity){ this.form.content_entity.value = null; } this.form.export.value = null; this.form.submit();'),
+      '#attributes' => ['onchange' => 'if(this.form.content_entity){ this.form.content_entity.value = null; } this.form.export.value = null; this.form.submit();'],
     ];
 
-    // Auto-complete field for the content entity
-    if($default_type && $default_name){
+    // Auto-complete field for the content entity.
+    if ($default_type && $default_name) {
       $form['content_entity'] = [
         '#title' => $this->t('Content Entity'),
         '#type' => 'entity_autocomplete',
@@ -115,13 +91,14 @@ class ContentSingleExportForm extends FormBase {
         '#ajax' => [
           'callback' => '::updateExport',
           'wrapper' => 'edit-export-wrapper',
-            'event' => 'autocompleteclose',
+          'event' => 'autocompleteclose',
         ],
       ];
-      // Autocomplete doesn't support target bundles parameter on bundle-less entities.
+      // Autocomplete doesn't support target bundles parameter on bundle-less
+      // entities.
       $target_type = $this->entityTypeManager->getDefinition($default_type);
       $target_type_bundles = $target_type->getBundleEntityType();
-      if(is_null($target_type_bundles)){
+      if (is_null($target_type_bundles)) {
         unset($form['content_entity']['#selection_settings']);
       }
     }
@@ -140,7 +117,7 @@ class ContentSingleExportForm extends FormBase {
   /**
    * Handles switching the content type selector.
    */
-  protected function findContent($content_type) {
+  protected function findContent($content_type) : array {
     $names = [
       '' => $this->t('- Select -'),
     ];
@@ -164,23 +141,23 @@ class ContentSingleExportForm extends FormBase {
    * Handles switching the export textarea.
    */
   public function updateExport($form, FormStateInterface $form_state) {
-    // Get submitted values
+    // Get submitted values.
     $entity_type = $form_state->getValue('content_type');
     $entity_id = $form_state->getValue('content_entity');
 
-    // DB entity to YAML
+    // DB entity to YAML.
     $entity = $this->entityTypeManager->getStorage($entity_type)->load($entity_id);
 
     // Generate the YAML file.
     $serializer_context = [];
-    $language = \Drupal::languageManager()->getCurrentLanguage()->getId();
+    $language = $this->languageManager->getCurrentLanguage()->getId();
     $entity = $entity->getTranslation($language);
     $exported_entity = $this->contentExporter->exportEntity($entity, $serializer_context);
 
-    // Create the name
+    // Create the name.
     $name = $entity_type . "." . $entity->bundle() . "." . $entity->uuid();
 
-    // Return form values
+    // Return form values.
     $form['export']['#value'] = $exported_entity;
     $form['export']['#description'] = $this->t('Filename: %name', ['%name' => $name . '.yml']);
     return $form['export'];
@@ -189,7 +166,7 @@ class ContentSingleExportForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state) : void {
     // Nothing to submit.
   }
 

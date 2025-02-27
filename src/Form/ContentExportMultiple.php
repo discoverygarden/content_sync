@@ -16,9 +16,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Class ContentExportMultiple
- *
- * @package Drupal\content_sync_ui\Form
+ * Multi-export confirm form.
  */
 class ContentExportMultiple extends ConfirmFormBase {
 

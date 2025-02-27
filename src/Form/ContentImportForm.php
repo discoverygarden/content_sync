@@ -11,21 +11,25 @@ use Drupal\Core\Form\FormStateInterface;
  * Defines the content import form.
  */
 class ContentImportForm extends FormBase {
+
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId() : string {
     return 'content_import_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state) {
+  public function buildForm(array $form, FormStateInterface $form_state) : array {
     $directory = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     $directory_is_writable = is_writable($directory);
     if (!$directory_is_writable) {
-      $this->logger('content_sync')->error('The directory %directory is not writable.', ['%directory' => $directory, 'link' => 'Import Archive']);
+      $this->logger('content_sync')->error('The directory %directory is not writable.', [
+        '%directory' => $directory,
+        'link' => 'Import Archive',
+      ]);
       $this->messenger()->addError($this->t('The directory %directory is not writable.', ['%directory' => $directory]));
     }
 
@@ -64,7 +68,7 @@ class ContentImportForm extends FormBase {
   public function submitForm(array &$form, FormStateInterface $form_state) {
     if ($path = $form_state->getValue('import_tarball')) {
       $directory = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
-      emptyDirectory($directory);
+      static::emptyDirectory($directory);
       try {
         $archiver = new ArchiveTar($path, 'gz');
         $files = [];
@@ -78,33 +82,53 @@ class ContentImportForm extends FormBase {
       }
       catch (\Exception $e) {
         $this->messenger()->addError($this->t('Could not extract the contents of the tar file. The error message is <em>@message</em>', ['@message' => $e->getMessage()]));
-        $this->logger('content_sync')->error('Could not extract the contents of the tar file. The error message is <em>@message</em>', ['@message' => $e->getMessage(), 'link' => 'Import Archive']);
+        $this->logger('content_sync')->error('Could not extract the contents of the tar file. The error message is <em>@message</em>', [
+          '@message' => $e->getMessage(),
+          'link' => 'Import Archive',
+        ]);
       }
       drupal_flush_all_caches();
       unlink($path);
     }
   }
-}
 
-/*
- * Help to empty a directory
- */
-function emptyDirectory($dirname,$self_delete=false) {
-   if (is_dir($dirname))
+  /**
+   * Help to empty a directory.
+   */
+  private static function emptyDirectory(string $dirname, bool $self_delete = FALSE) : bool {
+    if (is_dir($dirname)) {
       $dir_handle = opendir($dirname);
-   if (!$dir_handle)
-      return false;
-   while($file = readdir($dir_handle)) {
-      if ($file != "." && $file != "..") {
-         if (!is_dir($dirname."/".$file))
-            @unlink($dirname."/".$file);
-         else
-            emptyDirectory($dirname.'/'.$file,true);
+    }
+    else {
+      // The passed name is not a directory?
+      return FALSE;
+    }
+
+    if (!$dir_handle) {
+      // We failed to open the given directory; missing permissions?
+      return FALSE;
+    }
+
+    try {
+      while ($file = readdir($dir_handle)) {
+        if ($file !== "." && $file !== "..") {
+          if (!is_dir($dirname . "/" . $file)) {
+            @unlink($dirname . "/" . $file);
+          }
+          elseif (!static::emptyDirectory($dirname . '/' . $file, TRUE)) {
+            // Failed to delete something inside...
+            return FALSE;
+          }
+        }
       }
-   }
-   closedir($dir_handle);
-   if ($self_delete){
+      if ($self_delete) {
         @rmdir($dirname);
-   }
-   return true;
+      }
+      return TRUE;
+    }
+    finally {
+      closedir($dir_handle);
+    }
+  }
+
 }

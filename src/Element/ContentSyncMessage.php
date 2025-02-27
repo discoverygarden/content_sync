@@ -41,8 +41,7 @@ class ContentSyncMessage extends RenderElement {
   /**
    * {@inheritdoc}
    */
-  public function getInfo() {
-    $class = get_class($this);
+  public function getInfo() : array {
     return [
       '#message_type' => 'status',
       '#message_message' => '',
@@ -52,7 +51,7 @@ class ContentSyncMessage extends RenderElement {
       '#message_storage' => '',
       '#status_headings' => [],
       '#pre_render' => [
-        [$class, 'preRenderContentSyncMessage'],
+        [static::class, 'preRenderContentSyncMessage'],
       ],
       '#theme_wrappers' => ['content_sync_message'],
     ];
@@ -68,7 +67,7 @@ class ContentSyncMessage extends RenderElement {
    * @return array
    *   The modified element with status message.
    */
-  public static function preRenderContentSyncMessage(array $element) {
+  public static function preRenderContentSyncMessage(array $element) : array {
     $message_type = $element['#message_type'];
     $message_close = $element['#message_close'];
     $message_close_effect = $element['#message_close_effect'];
@@ -148,10 +147,6 @@ class ContentSyncMessage extends RenderElement {
     return $element;
   }
 
-  /****************************************************************************/
-  // Manage closed functions.
-  /****************************************************************************/
-
   /**
    * Is message closed via User Data or State API.
    *
@@ -163,7 +158,7 @@ class ContentSyncMessage extends RenderElement {
    * @return bool
    *   TRUE if the message is closed.
    */
-  public static function isClosed($storage, $id) {
+  public static function isClosed(string $storage, string $id) : bool {
     $account = \Drupal::currentUser();
     $namespace = 'content_sync.element.message';
     switch ($storage) {
@@ -171,13 +166,13 @@ class ContentSyncMessage extends RenderElement {
         /** @var \Drupal\Core\State\StateInterface $state */
         $state = \Drupal::service('state');
         $values = $state->get($namespace, []);
-        return (isset($values[$id])) ? TRUE : FALSE;
+        return isset($values[$id]);
 
       case self::STORAGE_USER:
         /** @var \Drupal\user\UserDataInterface $user_data */
         $user_data = \Drupal::service('user.data');
         $values = $user_data->get('content_sync', $account->id(), $namespace) ?: [];
-        return (isset($values[$id])) ? TRUE : FALSE;
+        return isset($values[$id]);
 
     }
     return FALSE;
@@ -193,7 +188,7 @@ class ContentSyncMessage extends RenderElement {
    *
    * @see \Drupal\content_sync\Controller\ContentSyncElementController::close
    */
-  public static function setClosed($storage, $id) {
+  public static function setClosed(string $storage, string $id) : void {
     $account = \Drupal::currentUser();
     $namespace = 'content_sync.element.message';
     switch ($storage) {
@@ -224,7 +219,7 @@ class ContentSyncMessage extends RenderElement {
    *
    * @see \Drupal\content_sync\Controller\ContentSyncElementController::close
    */
-  public static function resetClosed($storage, $id) {
+  public static function resetClosed(string $storage, string $id) : void {
     $account = \Drupal::currentUser();
     $namespace = 'content_sync.element.message';
     switch ($storage) {

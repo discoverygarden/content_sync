@@ -63,6 +63,8 @@ trait ContentExportTrait {
   }
 
   /**
+   * Generate export batch.
+   *
    * @param iterable $entities
    *   The entities to be exported.
    * @param array $serializer_context
@@ -101,7 +103,7 @@ trait ContentExportTrait {
 
     // Set batch operations by entity type/bundle.
     $operations = [];
-    $operations[] = [[$this, 'generateSiteUUIDFile'], [$serializer_context]];
+    $operations[] = [[$this, 'generateSiteUuidFile'], [$serializer_context]];
     foreach ($entities as $entity) {
       $this->getExportQueue()->createItem($entity);
     }
@@ -136,7 +138,7 @@ trait ContentExportTrait {
    *   - entity_type: The type of entity.
    *   - entity_uuid: The UUID of the identified entity.
    */
-  protected static function exportSplitName($name) : array {
+  protected static function exportSplitName(string $name) : array {
     [$entity_type, , $entity_uuid] = explode('.', $name);
     return compact('entity_type', 'entity_uuid');
   }
@@ -214,18 +216,18 @@ trait ContentExportTrait {
             if ($serializer_context['export_type'] === 'snapshot') {
               // Save to cs_db_snapshot table.
               $activeStorage = $this->getSnapshotStorage();
-              $activeStorage->cs_write($name, Yaml::decode($exported_entity), $entity_type . '.' . $bundle);
+              $activeStorage->contentSyncWrite($name, Yaml::decode($exported_entity), $entity_type . '.' . $bundle);
             }
             else {
               // Compate the YAML from the snapshot.
               // If for some reason is not on our snapshoot then add it.
               // Or if the new YAML is different the update it.
               $activeStorage = $this->getSnapshotStorage();
-              $exported_entity_snapshoot = $activeStorage->cs_read($name);
+              $exported_entity_snapshoot = $activeStorage->contentSyncRead($name);
 
               if (!$exported_entity_snapshoot || Yaml::encode($exported_entity_snapshoot) !== $exported_entity) {
                 // Save to cs_db_snapshot table.
-                $activeStorage->cs_write($name, Yaml::decode($exported_entity), $entity_type . '.' . $bundle);
+                $activeStorage->contentSyncWrite($name, Yaml::decode($exported_entity), $entity_type . '.' . $bundle);
               }
 
               if ($serializer_context['export_type'] === 'tar') {
@@ -296,10 +298,10 @@ trait ContentExportTrait {
    *
    * @param array $serializer_context
    *   The batch content to persist.
-   * @param \DrushBatchContext|array $context
+   * @param array $context
    *   The batch context.
    */
-  public function generateSiteUUIDFile(array $serializer_context, &$context) {
+  public function generateSiteUuidFile(array $serializer_context, array &$context) : void {
     // Include Site UUID to YML file.
     $site_config = \Drupal::config('system.site');
     $site_uuid_source = $site_config->get('uuid');
@@ -308,20 +310,20 @@ trait ContentExportTrait {
     // Set the name.
     $name = "site.uuid";
     if (isset($serializer_context['export_type'])) {
-      if ($serializer_context['export_type'] == 'snapshot') {
+      if ($serializer_context['export_type'] === 'snapshot') {
         // Save to cs_db_snapshot table.
         $activeStorage = $this->getSnapshotStorage();
         $activeStorage->write($name, $entity);
       }
-      elseif ($serializer_context['export_type'] == 'tar') {
+      elseif ($serializer_context['export_type'] === 'tar') {
         // Add YAML to the archiver.
         $this->getArchiver()->addString("entities/$name.yml", Yaml::encode($entity));
       }
-      elseif ($serializer_context['export_type'] == 'folder') {
+      elseif ($serializer_context['export_type'] === 'folder') {
         $path = $serializer_context['content_sync_directory_entities'];
         $destination = $path . "/$name.yml";
         $this->getFileSystem()->prepareDirectory($path, FileSystemInterface::CREATE_DIRECTORY);
-        $file = $this->getFileSystem()->saveData(Yaml::encode($entity), $destination, FileSystemInterface::EXISTS_REPLACE);
+        $this->getFileSystem()->saveData(Yaml::encode($entity), $destination, FileSystemInterface::EXISTS_REPLACE);
       }
     }
     $context['message'] = $name;
@@ -343,8 +345,7 @@ trait ContentExportTrait {
       $results = array_unique($results);
       // Log all the items processed.
       foreach ($results as $key => $result) {
-        if ($key != 'errors') {
-          // drupal_set_message(t('Processed UUID @title.', array('@title' => $result)));.
+        if ($key !== 'errors') {
           $this->getExportLogger()
             ->info('Processed UUID @title.', [
               '@title' => $result,
