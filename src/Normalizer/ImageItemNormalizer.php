@@ -6,7 +6,7 @@ use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\serialization\Normalizer\EntityReferenceFieldItemNormalizer;
 
 /**
- *
+ * Image item normalizer.
  */
 class ImageItemNormalizer extends EntityReferenceFieldItemNormalizer {
 

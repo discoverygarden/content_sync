@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\content_sync\src\Logger;
+namespace Drupal\content_sync\Logger;
 
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 

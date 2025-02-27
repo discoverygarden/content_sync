@@ -11,6 +11,7 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\file\FileInterface;
 
 /**
  * Adds the file URI to embedded file entities.
@@ -22,21 +23,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\file\FileInterface';
-
-  /**
-   * File system service.
-   *
-   * @var \Drupal\Core\File\FileSystemInterface
-   */
-  protected $fileSystem;
-
-  /**
-   * File URL generator service.
-   *
-   * @var \Drupal\Core\File\FileUrlGeneratorInterface
-   */
-  protected FileUrlGeneratorInterface $fileUrlGenerator;
+  protected string $supportedInterfaceOrClass = FileInterface::class;
 
   /**
    * Constructor.
@@ -48,12 +35,10 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
     EntityTypeBundleInfoInterface $entity_type_bundle_info,
     EntityRepositoryInterface $entity_repository,
     SyncNormalizerDecoratorManager $decorator_manager,
-    FileSystemInterface $file_system,
-    FileUrlGeneratorInterface $file_url_generator,
+    protected FileSystemInterface $fileSystem,
+    protected FileUrlGeneratorInterface $fileUrlGenerator,
   ) {
     parent::__construct($entity_type_manager, $entity_type_repository, $entity_field_manager, $entity_type_bundle_info, $entity_repository, $decorator_manager);
-    $this->fileSystem = $file_system;
-    $this->fileUrlGenerator = $file_url_generator;
   }
 
   /**
@@ -111,20 +96,6 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
         throw new \RuntimeException(new FormattableMarkup('Failed to write @filename.', ['@filename' => $entity->getFilename()]));
       }
     }
-
-    // If the image was sent as URL we must to create the physical file.
-    /*if ($file_data) {
-    // Decode and save to file.
-    $file_contents = base64_decode($file_data);
-    $dirname = $this->fileSystem->dirname($entity->getFileUri());
-    file_prepare_directory($dirname, FILE_CREATE_DIRECTORY);
-    if ($uri = file_unmanaged_save_data($file_contents, $entity->getFileUri())) {
-    $entity->setFileUri($uri);
-    }
-    else {
-    throw new \RuntimeException(SafeMarkup::format('Failed to write @filename.', array('@filename' => $entity->getFilename())));
-    }
-    }*/
 
     return $entity;
   }

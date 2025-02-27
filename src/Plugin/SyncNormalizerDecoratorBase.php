@@ -13,21 +13,21 @@ abstract class SyncNormalizerDecoratorBase extends PluginBase implements SyncNor
   /**
    * {@inheritdoc}
    */
-  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) {
+  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) : void {
 
   }
 
   /**
    * {@inheritdoc}
    */
-  public function decorateDenormalization(array &$normalized_entity, $type, $format, array $context = []) {
+  public function decorateDenormalization(array &$normalized_entity, $type, $format, array $context = []) : void {
 
   }
 
   /**
    * {@inheritdoc}
    */
-  public function decorateDenormalizedEntity(ContentEntityInterface $entity, array $normalized_entity, $format, array $context = []) {
+  public function decorateDenormalizedEntity(ContentEntityInterface $entity, array $normalized_entity, $format, array $context = []) : void {
 
   }
 

@@ -9,6 +9,7 @@ use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
+ * Parent sync normalizer decorator.
  *
  * @SyncNormalizerDecorator(
  *   id = "parents",
@@ -17,23 +18,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPluginInterface {
 
-
-  protected $entityTypeManager;
-
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, EntityTypeManagerInterface $entity_type_manager) {
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->entityTypeManager = $entity_type_manager;
   }
 
   /**
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   * @param array $configuration
-   * @param $plugin_id
-   * @param $plugin_definition
-   *
-   * @return static
+   * {@inheritDoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) : self {
     return new static(
       $configuration,
       $plugin_id,
@@ -43,18 +40,15 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
   }
 
   /**
-   * @param array $normalized_entity
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   * @param $format
-   * @param array $context
+   * {@inheritDoc}
    */
-  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) {
+  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) : void {
     if ($entity->hasField('parent')) {
       $entity_type = $entity->getEntityTypeId();
       $storage = $this->entityTypeManager->getStorage($entity_type);
       if (method_exists($storage, 'loadParents')) {
         $parents = $storage->loadParents($entity->id());
-        foreach ($parents as $parent_key => $parent) {
+        foreach ($parents as $parent) {
           if (!$this->parentExistence($parent->uuid(), $normalized_entity)) {
             $normalized_entity['parent'][] = [
               'target_type' => $entity_type,
@@ -93,8 +87,8 @@ class Parents extends SyncNormalizerDecoratorBase implements ContainerFactoryPlu
    * @return bool
    *   TRUE if it already exists, FALSE if not.
    */
-  protected function parentExistence($parent_uuid, array $normalized_entity) {
-    return array_search($parent_uuid, array_column($normalized_entity['parent'], 'target_uuid')) !== FALSE;
+  protected function parentExistence(string $parent_uuid, array $normalized_entity) : bool {
+    return in_array($parent_uuid, array_column($normalized_entity['parent'], 'target_uuid'), TRUE);
   }
 
 }

@@ -4,6 +4,10 @@ namespace Drupal\content_sync\Plugin\SyncNormalizerDecorator;
 
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorBase;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Provides a decorator for setting the alias to entity.
@@ -13,43 +17,64 @@ use Drupal\Core\Entity\ContentEntityInterface;
  *   name = @Translation("IDs Cleaner"),
  * )
  */
-class IdsCleaner extends SyncNormalizerDecoratorBase {
+class IdsCleaner extends SyncNormalizerDecoratorBase implements ContainerFactoryPluginInterface {
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+  /**
+   * Constructor.
+   */
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected EntityTypeManagerInterface $entityTypeManager,
+  ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
   }
 
   /**
-   * @param array $normalized_entity
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   * @param $format
-   * @param array $context
+   * {@inheritDoc}
    */
-  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) : self {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('entity_type.manager'),
+    );
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) : void {
     $this->cleanReferenceIds($normalized_entity, $entity);
     $this->cleanIds($normalized_entity, $entity);
   }
 
   /**
-   * @param $normalized_entity
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   * Clear out referenced IDs.
    *
-   * @return mixed
+   * @param array $normalized_entity
+   *   The entity data from which to clear reference IDs.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity.
    */
-  protected function cleanReferenceIds(&$normalized_entity, ContentEntityInterface $entity) {
+  protected function cleanReferenceIds(array &$normalized_entity, ContentEntityInterface $entity) : void {
     $field_definitions = $entity->getFieldDefinitions();
+    /**
+     * @var string $field_name
+     * @var \Drupal\Core\Field\FieldDefinitionInterface $field_definition
+     */
     foreach ($field_definitions as $field_name => $field_definition) {
       // We are only interested in importing content entities.
-      if (!is_a($field_definition->getClass(), '\Drupal\Core\Field\EntityReferenceFieldItemList', TRUE)) {
+      if (!$field_definition instanceof EntityReferenceFieldItemListInterface) {
         continue;
       }
-      if (isset($normalized_entity[$field_name]) && !empty($normalized_entity[$field_name]) && is_array($normalized_entity[$field_name])) {
-        $entity_type = $field_definition->getFieldStorageDefinition()
-          ->getSetting('target_type');
-        $reflection = new \ReflectionClass(\Drupal::entityTypeManager()
-          ->getDefinition($entity_type)
-          ->getClass());
-        if (!$reflection->implementsInterface('\Drupal\Core\Entity\ContentEntityInterface')) {
+      if (!empty($normalized_entity[$field_name]) && is_array($normalized_entity[$field_name])) {
+        $entity_type_id = $field_definition->getFieldStorageDefinition()->getSetting('target_type');
+        $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
+
+        if (!$entity_type instanceof ContentEntityInterface) {
           continue;
         }
         $key = $field_definition->getFieldStorageDefinition()
@@ -64,24 +89,24 @@ class IdsCleaner extends SyncNormalizerDecoratorBase {
         }
       }
     }
-    return $normalized_entity;
   }
 
   /**
-   * @param $normalized_entity
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   * Clear out IDs.
    *
-   * @return mixed
+   * @param array $normalized_entity
+   *   Normalized entity in which to clean IDs.
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity of which to clear out IDs.
    */
-  protected function cleanIds(&$normalized_entity, ContentEntityInterface $entity) {
+  protected function cleanIds(array &$normalized_entity, ContentEntityInterface $entity) : void {
     $keys = $entity->getEntityType()->getKeys();
     if (isset($normalized_entity[$keys['id']])) {
       unset($normalized_entity[$keys['id']]);
     }
-    if (isset($keys['revision']) && isset($normalized_entity[$keys['revision']])) {
+    if (isset($keys['revision'], $normalized_entity[$keys['revision']])) {
       unset($normalized_entity[$keys['revision']]);
     }
-    return $normalized_entity;
   }
 
 }

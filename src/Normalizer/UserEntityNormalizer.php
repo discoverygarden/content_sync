@@ -2,6 +2,9 @@
 
 namespace Drupal\content_sync\Normalizer;
 
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\user\UserInterface;
+
 /**
  * User entity normalizer class.
  */
@@ -13,7 +16,7 @@ class UserEntityNormalizer extends ContentEntityNormalizer {
    *
    * @var string
    */
-  protected $supportedInterfaceOrClass = 'Drupal\user\UserInterface';
+  protected string $supportedInterfaceOrClass = UserInterface::class;
 
   /**
    * {@inheritdoc}
@@ -59,7 +62,7 @@ class UserEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  protected function getContentSyncMetadata($object, $context = []) {
+  protected function getContentSyncMetadata(ContentEntityInterface $object, array $context = []): array {
     /** @var \Drupal\user\Entity\User $object */
     $metadata = parent::getContentSyncMetadata($object, $context);
     if ($object->isAnonymous()) {

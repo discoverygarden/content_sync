@@ -4,7 +4,7 @@ namespace Drupal\content_sync\Controller;
 
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Xss;
-use Drupal\content_sync\src\Logger\LogFilterTrait;
+use Drupal\content_sync\Logger\LogFilterTrait;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\Query\PagerSelectExtender;

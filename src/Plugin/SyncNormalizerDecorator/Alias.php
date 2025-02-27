@@ -19,46 +19,40 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class Alias extends SyncNormalizerDecoratorBase implements ContainerFactoryPluginInterface {
 
   /**
-   * @var \Drupal\path_alias\AliasManager
+   * Constructor.
    */
-  protected $aliasManager;
-
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, AliasManager $alias_manager) {
+  public function __construct(
+    array $configuration,
+    $plugin_id,
+    $plugin_definition,
+    protected AliasManager $aliasManager,
+  ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
-    $this->aliasManager = $alias_manager;
   }
 
   /**
-   * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
-   * @param array $configuration
-   * @param $plugin_id
-   * @param $plugin_definition
-   *
-   * @return static
+   * {@inheritDoc}
    */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) : self {
     return new static(
       $configuration,
       $plugin_id,
       $plugin_definition,
-      $container->get('path_alias.manager')
+      $container->get('path_alias.manager'),
     );
   }
 
   /**
-   * @param array $normalized_entity
-   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
-   * @param $format
-   * @param array $context
+   * {@inheritDoc}
    */
-  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) {
+  public function decorateNormalization(array &$normalized_entity, ContentEntityInterface $entity, $format, array $context = []) : void {
     if ($entity->hasLinkTemplate('canonical')) {
       $url = $entity->toUrl();
       if (!empty($url)) {
         $system_path = '/' . $url->getInternalPath();
         $langcode = $entity->language()->getId();
         $path_alias = $this->aliasManager->getAliasByPath($system_path, $langcode);
-        if (!empty($path_alias) && $path_alias != $system_path) {
+        if (!empty($path_alias) && $path_alias !== $system_path) {
           $normalized_entity['path'] = [
             [
               'alias' => $path_alias,
