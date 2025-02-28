@@ -97,9 +97,7 @@ content.help.about:
     _controller: '\Drupal\content_sync\Controller\ContentHelpController::about'
     _title: 'How can we help you?'
   requirements:
-    # phpcs:disable DrupalPractice.Yaml.RoutingAccess.PermissionFound
-    _permission: 'access administration pages'
-    # phpcs:enable DrupalPractice.Yaml.RoutingAccess.PermissionFound
+    _permission: "access administration pages"
 
 content_sync.element.message.close:
   path: '/content_sync/message/close/{storage}/{id}'
