@@ -104,7 +104,7 @@ class ContentExportForm extends FormBase {
   protected function generateEntities(bool $access_check = TRUE) : \Traversable {
     $entity_type_definitions = $this->entityTypeManager->getDefinitions();
     foreach ($entity_type_definitions as $entity_type => $definition) {
-      if (!$definition instanceof ContentEntityInterface) {
+      if (!is_a($definition->getClass(), ContentEntityInterface::class, TRUE)) {
         continue;
       }
       $entities = $this->entityTypeManager->getStorage($entity_type)

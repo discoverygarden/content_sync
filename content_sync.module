@@ -5,6 +5,7 @@
  * Allows site administrators to modify content.
  */
 
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\RenderContext;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -42,6 +43,7 @@ function content_sync_help($route_name, RouteMatchInterface $route_match) : null
     return $build;
   }
 
+  return NULL;
 }
 
 /**
@@ -145,6 +147,7 @@ function content_sync_entity_update(EntityInterface $entity) : void {
     if (isset($instances[$entity_type]) && $instances[$entity_type] instanceof ContentEntityType) {
       $reloaded_entity = $entityTypeManager->getStorage($entity_type)
         ->load($entity_id);
+      assert($reloaded_entity instanceof ContentEntityInterface);
       if (!$reloaded_entity) {
         \Drupal::logger('content_sync')->warning('Failed to (re)load entity during update hook: {type}, {id}', [
           'type' => $entity_type,
@@ -154,13 +157,15 @@ function content_sync_entity_update(EntityInterface $entity) : void {
       }
       // Generate the YAML file.
       $serializer_context = [];
-      $exported_entity = \Drupal::service('content_sync.exporter')
-        ->exportEntity($reloaded_entity, $serializer_context);
+      /** @var \Drupal\content_sync\Exporter\ContentExporter $exporter */
+      $exporter = \Drupal::service('content_sync.exporter');
+      $exported_entity = $exporter->exportEntity($reloaded_entity, $serializer_context);
       // Create the name.
       $name = $entity_type . '.' . $entity_bundle . '.' . $reloaded_entity->uuid();
       // Insert/Update Data.
+      /** @var \Drupal\content_sync\Content\DatabaseStorage $activeStorage */
       $activeStorage = \Drupal::service('content.storage.active');
-      $activeStorage->cs_write($name, Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
+      $activeStorage->contentSyncWrite($name, Yaml::decode($exported_entity), $entity_type . "." . $entity_bundle);
       // Invalidate the CS Cache of the entity.
       \Drupal::cache('content')->invalidate($entity_type . "." . $entity_bundle . ":" . $name);
     }

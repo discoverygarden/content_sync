@@ -4,6 +4,7 @@ namespace Drupal\content_sync\Drush\Commands;
 
 use Consolidation\AnnotatedCommand\Attributes\HookSelector;
 use Drupal\content_sync\Form\ContentExportForm;
+use Drush\Boot\DrupalBootLevels;
 use Drush\Commands\AutowireTrait;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Input\InputInterface;
