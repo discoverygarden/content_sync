@@ -4,6 +4,7 @@ namespace Drupal\content_sync\Plugin\SyncNormalizerDecorator;
 
 use Drupal\content_sync\Plugin\SyncNormalizerDecoratorBase;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\ContentEntityTypeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Field\EntityReferenceFieldItemListInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
@@ -67,14 +68,14 @@ class IdsCleaner extends SyncNormalizerDecoratorBase implements ContainerFactory
      */
     foreach ($field_definitions as $field_name => $field_definition) {
       // We are only interested in importing content entities.
-      if (!$field_definition instanceof EntityReferenceFieldItemListInterface) {
+      if (!is_a($field_definition->getClass(), EntityReferenceFieldItemListInterface::class, TRUE)) {
         continue;
       }
       if (!empty($normalized_entity[$field_name]) && is_array($normalized_entity[$field_name])) {
         $entity_type_id = $field_definition->getFieldStorageDefinition()->getSetting('target_type');
         $entity_type = $this->entityTypeManager->getDefinition($entity_type_id);
 
-        if (!$entity_type instanceof ContentEntityInterface) {
+        if (!$entity_type instanceof ContentEntityTypeInterface) {
           continue;
         }
         $key = $field_definition->getFieldStorageDefinition()
