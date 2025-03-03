@@ -152,12 +152,13 @@ trait ContentExportTrait {
    *   The batch context.
    */
   public function processContentExportFiles(array $serializer_context = [], array &$context = []) : void {
+    $sandbox =& $context['sandbox'];
     // Initialize Batch.
-    if (!isset($context['sandbox']['progress'])) {
-      $context['sandbox']['progress'] = 0;
-      $context['sandbox']['max'] = $this->exportQueue->numberOfItems();
-      $context['sandbox']['dependencies'] = [];
-      $context['sandbox']['exported'] = [];
+    if (!isset($sandbox['progress'])) {
+      $sandbox['progress'] = 0;
+      $sandbox['max'] = $this->exportQueue->numberOfItems();
+      $sandbox['dependencies'] = [];
+      $sandbox['exported'] = [];
     }
 
     $queue_item = $this->exportQueue->claimItem();
@@ -206,7 +207,7 @@ trait ContentExportTrait {
         $uuid = $entity->uuid();
         $name = $entity_type . "." . $bundle . "." . $uuid;
 
-        if (!isset($context['sandbox']['exported'][$name])) {
+        if (!isset($sandbox['exported'][$name])) {
 
           // Generate the YAML file.
           $exported_entity = $this->getContentExporter()
@@ -258,26 +259,26 @@ trait ContentExportTrait {
 
               if ($serializer_context['include_dependencies']) {
                 // Include Dependencies.
-                if (!isset($context['sandbox']['dependencies'][$name])) {
+                if (!isset($sandbox['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
 
-                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported']);
-                  $new_deps = array_diff_key($queue, $context['sandbox']['dependencies']);
-                  $context['sandbox']['dependencies'] += $new_deps;
+                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $sandbox['exported']);
+                  $new_deps = array_diff_key($queue, $sandbox['dependencies']);
+                  $sandbox['dependencies'] += $new_deps;
                   unset($new_deps[$name]);
                   if (!empty($new_deps)) {
                     // Update the batch queue.
                     array_map([$this->exportQueue, 'createItem'], $new_deps);
-                    $context['sandbox']['max'] = $context['sandbox']['max'] + count($new_deps);
+                    $sandbox['max'] = $sandbox['max'] + count($new_deps);
                   }
                 }
               }
 
-              $context['sandbox']['exported'][$name] = $name;
+              $sandbox['exported'][$name] = $name;
               $context['results'][] = $name;
               // Increment the progress for the message.
-              $message_progress = $context['sandbox']['progress'] + 1;
-              $context['message'] = "$name {$message_progress}/{$context['sandbox']['max']}";
+              $message_progress = $sandbox['progress'] + 1;
+              $context['message'] = "$name {$message_progress}/{$sandbox['max']}";
             }
           }
 
@@ -287,10 +288,10 @@ trait ContentExportTrait {
 
     $this->exportQueue->deleteItem($queue_item);
 
-    $context['sandbox']['progress']++;
-    $context['finished'] = $context['sandbox']['max'] > 0
-                           && $context['sandbox']['progress'] < $context['sandbox']['max'] ?
-                           $context['sandbox']['progress'] / $context['sandbox']['max'] : 1;
+    $sandbox['progress']++;
+    $context['finished'] = $sandbox['max'] > 0
+                           && $sandbox['progress'] < $sandbox['max'] ?
+                           $sandbox['progress'] / $sandbox['max'] : 1;
   }
 
   /**
