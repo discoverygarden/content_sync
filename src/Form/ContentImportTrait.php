@@ -3,6 +3,8 @@
 namespace Drupal\content_sync\Form;
 
 use Drupal\content_sync\ContentSyncManagerInterface;
+use Drupal\Core\Config\FileStorage;
+use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Queue\QueueInterface;
 
@@ -78,10 +80,10 @@ trait ContentImportTrait {
     $this->queueSync = \Drupal::queue(static::getSyncQueuePrefix() . ":{$uuid}", TRUE);
     array_map(
       [$this->queueSync, 'createItem'],
-      array_reverse($this->contentSyncManager->generateImportQueue(
+      array_keys(array_reverse($this->contentSyncManager->generateImportQueue(
         $content_to_sync,
         $serializer_context['content_sync_directory_entities']
-      ))
+      )))
     );
 
     $operations[] = [[$this, 'deleteContent'], [$serializer_context]];
@@ -93,6 +95,26 @@ trait ContentImportTrait {
       'operations' => $operations,
     ];
     return $batch;
+  }
+
+  /**
+   * Memoized storage(s).
+   *
+   * @var \Drupal\Core\Config\StorageInterface[]
+   */
+  protected array $storages = [];
+
+  /**
+   * Get storage for the given directory.
+   *
+   * @param string $dir
+   *   The directory for which to obtain a file storage.
+   *
+   * @return \Drupal\Core\Config\StorageInterface
+   *   A file storage instance for the given directory.
+   */
+  protected function getStorage(string $dir) : StorageInterface {
+    return $this->storages[$dir] ??= new FileStorage($dir);
   }
 
   /**
@@ -117,9 +139,14 @@ trait ContentImportTrait {
 
     if ($queue_item) {
       $error = FALSE;
-      $item = $queue_item->data;
-      $decoded_entity = $item['decoded_entity'];
-      $entity_type_id = $item['entity_type_id'];
+      $item_id = $queue_item->data;
+
+      [$entity_type_id, $bundle] = explode('.', $item_id);
+      $decoded_entity = $this->getStorage($context['sandbox']['directory'])->createCollection("{$entity_type_id}.{$bundle}")->read($item_id);
+      if (!$decoded_entity) {
+        return;
+      }
+
       $entity = $this->contentSyncManager->getContentImporter()
         ->importEntity($decoded_entity, $serializer_context);
       if ($entity) {
