@@ -51,7 +51,7 @@ services:
     class: Drupal\content_sync\DependencyResolver\ExportQueueResolver
     autowire: true
   content_sync.resolver.import:
-    class: Drupal\content_sync\DependencyResolver\ExportQueueResolver
+    class: Drupal\content_sync\DependencyResolver\ImportQueueResolver
     autowire: true
 
 
