@@ -16,13 +16,6 @@ use Drupal\Core\Entity\RevisionableInterface;
 class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = EntityReferenceItem::class;
-
-  /**
    * The entity repository.
    *
    * @var \Drupal\Core\Entity\EntityRepositoryInterface
@@ -91,6 +84,15 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
       }
     }
     return parent::constructValue($data, $context);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      EntityReferenceItem::class => TRUE,
+    ];
   }
 
 }

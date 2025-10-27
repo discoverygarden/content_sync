@@ -5,7 +5,7 @@
     "license": "GPL-2.0+",
     "suggest": {},
     "conflict": {
-        "drupal/core": "<10"
+        "drupal/core": "<10.1"
     },
     "replace": {
         "drupal/content_sync": "^2"

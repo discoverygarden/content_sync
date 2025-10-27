@@ -2,18 +2,10 @@
 
 namespace Drupal\content_sync\Normalizer;
 
-
 use Drupal\image\Plugin\Field\FieldType\ImageItem;
 use Drupal\serialization\Normalizer\EntityReferenceFieldItemNormalizer;
 
 class ImageItemNormalizer extends EntityReferenceFieldItemNormalizer {
-
-  /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = ImageItem::class;
 
   /**
    * {@inheritdoc}
@@ -26,6 +18,15 @@ class ImageItemNormalizer extends EntityReferenceFieldItemNormalizer {
       }
     }
     return $denormalized_data;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      ImageItem::class => TRUE,
+    ];
   }
 
 }

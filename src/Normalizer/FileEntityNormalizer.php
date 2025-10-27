@@ -11,18 +11,12 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Component\Render\FormattableMarkup;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\file\FileInterface;
 
 /**
  * Adds the file URI to embedded file entities.
  */
 class FileEntityNormalizer extends ContentEntityNormalizer {
-
-  /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = 'Drupal\file\FileInterface';
 
   /**
    * File system service.
@@ -153,6 +147,15 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
     }
 
     return $data;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      FileInterface::class => TRUE,
+    ];
   }
 
 }

@@ -2,18 +2,12 @@
 
 namespace Drupal\content_sync\Normalizer;
 
+use Drupal\user\UserInterface;
+
 /**
  * User entity normalizer class.
  */
 class UserEntityNormalizer extends ContentEntityNormalizer {
-
-
-  /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = 'Drupal\user\UserInterface';
 
   /**
    * {@inheritdoc}
@@ -67,4 +61,14 @@ class UserEntityNormalizer extends ContentEntityNormalizer {
     }
     return $metadata;
   }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      UserInterface::class => TRUE,
+    ];
+  }
+
 }
