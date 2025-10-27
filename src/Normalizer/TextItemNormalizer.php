@@ -19,7 +19,7 @@ class TextItemNormalizer extends NormalizerBase {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) {
+  public function normalize($object, $format = NULL, array $context = []) : float|int|bool|\ArrayObject|array|string|null {
     $attributes = [];
     foreach ($object->getProperties(TRUE) as $name => $field) {
       $value = $this->serializer->normalize($field, $format, $context);

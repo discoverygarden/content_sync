@@ -31,11 +31,11 @@ class YamlEncoder implements EncoderInterface, DecoderInterface{
     $this->yaml = $yaml;
   }
 
-  public function decode($data, $format, array $context = array()) {
+  public function decode($data, $format, array $context = array()) : mixed {
     return $this->yaml->decode($data);
   }
 
-  public function supportsDecoding($format) {
+  public function supportsDecoding($format) : bool {
     return $format == $this->format;
   }
 
