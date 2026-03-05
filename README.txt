@@ -21,6 +21,8 @@ INSTALLATION
 Extract module at drupal/modules/contrib directory and enable it from browser
 by going in this path /admin/modules.
 
+The `CONTENT_SYNC__SUPPRESS_SNAPSHOT_ON_INSTALL` environment variable might be set dto soemthing truthy in order to skip the build of the snapshot during module installation, with the expectation that the snapshot will be built by other means, such as the `drush content-sync:snapshot` command ( https://github.com/discoverygarden/content_sync/blob/7816728adc70b3c85642bd254b9096a44a1d0308/src/Drush/Commands/ContentSyncCommands.php#L519-L528 ).
+
 
 CONFIGURATION
 -------------
