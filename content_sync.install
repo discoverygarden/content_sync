@@ -7,10 +7,12 @@
 /**
  * Implements hook_install().
  */
-function content_sync_install(){
-  //Create the content snapshot.
-  $cs_snapshoot = Drupal::service('content_sync.snaphoshot');
-  $cs_snapshoot->snapshot();
+function content_sync_install() {
+  if (!filter_var(getenv('CONTENT_SYNC__SUPPRESS_SNAPSHOT_ON_INSTALL'), FILTER_VALIDATE_BOOLEAN)) { 
+    // Create the content snapshot.
+    $cs_snapshoot = Drupal::service('content_sync.snaphoshot');
+    $cs_snapshoot->snapshot();
+  }
 }
 
 /**
