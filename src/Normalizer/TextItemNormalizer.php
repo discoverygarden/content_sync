@@ -3,6 +3,7 @@
 namespace Drupal\content_sync\Normalizer;
 
 use Drupal\serialization\Normalizer\NormalizerBase;
+use Drupal\text\Plugin\Field\FieldType\TextItemBase;
 
 /**
  * Converts TextItem fields to an array including computed values.
@@ -10,16 +11,9 @@ use Drupal\serialization\Normalizer\NormalizerBase;
 class TextItemNormalizer extends NormalizerBase {
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = 'Drupal\text\Plugin\Field\FieldType\TextItemBase';
-
-  /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) {
+  public function normalize($object, $format = NULL, array $context = []) : float|int|bool|\ArrayObject|array|string|null {
     $attributes = [];
     foreach ($object->getProperties(TRUE) as $name => $field) {
       $value = $this->serializer->normalize($field, $format, $context);
@@ -29,6 +23,16 @@ class TextItemNormalizer extends NormalizerBase {
       $attributes[$name] = $value;
     }
     return $attributes;
+  }
+
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      TextItemBase::class => TRUE,
+    ];
   }
 
 }

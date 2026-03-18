@@ -16,13 +16,6 @@ use Drupal\Core\Entity\RevisionableInterface;
 class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
 
   /**
-   * The interface or class that this Normalizer supports.
-   *
-   * @var string
-   */
-  protected $supportedInterfaceOrClass = EntityReferenceItem::class;
-
-  /**
    * The entity repository.
    *
    * @var \Drupal\Core\Entity\EntityRepositoryInterface
@@ -46,7 +39,7 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
     $values = parent::normalize($field_item, $format, $context);
 
     /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    if ($entity = $field_item->get('entity')->getValue()) {
+    if ($entity = ($field_item->getValue()['entity'] ?? NULL)) {
       $values['target_type'] = $entity->getEntityTypeId();
       // Add the target entity UUID to the normalized output values.
       $values['target_uuid'] = $entity->uuid();
@@ -91,6 +84,15 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
       }
     }
     return parent::constructValue($data, $context);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  public function getSupportedTypes(?string $format) : array {
+    return [
+      EntityReferenceItem::class => TRUE,
+    ];
   }
 
 }
