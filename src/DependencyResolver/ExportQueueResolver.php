@@ -11,6 +11,8 @@ use Drupal\content_sync\Content\ContentDatabaseStorage;
  */
 class ExportQueueResolver implements ContentSyncResolverInterface {
 
+  protected ContentDatabaseStorage $activeStorage;
+
   /**
    * Builds a graph placing the deepest vertexes at the first place.
    *
@@ -84,8 +86,8 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
       $entity = $normalized_entities[$identifier];
     }
     else {
-      $activeStorage = new ContentDatabaseStorage(\Drupal::database(), 'cs_db_snapshot');
-      $entity = $activeStorage->cs_read($identifier);
+      $this->activeStorage ??= new ContentDatabaseStorage(\Drupal::database(), 'cs_db_snapshot');
+      $entity = $this->activeStorage->cs_read($identifier);
     }
     return $entity;
   }
