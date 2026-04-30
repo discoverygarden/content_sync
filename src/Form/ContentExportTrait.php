@@ -239,10 +239,11 @@ trait ContentExportTrait {
               }
 
               // Invalidate the CS Cache of the entity.
-              $cache = \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
+              \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
 
               if (
-                $serializer_context['include_dependencies'] &&
+                $serializer_context['include_dependencies']
+                &&
                 (
                   // Export initially targeted some set of entities, so deal with
                   // all dependencies.
@@ -255,17 +256,10 @@ trait ContentExportTrait {
                 if (!isset($context['sandbox']['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
 
-                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported']);
+                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported'], $serializer_context);
                   $new_deps = array_diff_key($queue, $context['sandbox']['dependencies']);
                   $context['sandbox']['dependencies'] += $new_deps;
                   unset($new_deps[$name]);
-                  if (empty($serializer_context['batch_info']['uuids'])) {
-                    // Filter out entities which should already be included in a batch process.
-                    $new_deps = array_filter($new_deps, static function($item) use ($serializer_context) {
-                      [$entity_type,] = explode('.', $item, 2);
-                      return !in_array($entity_type, $serializer_context['batch_info']['entity_types']);
-                    });
-                  }
                   if (!empty($new_deps)) {
                     // Update the batch queue.
                     array_map([$this->exportQueue, 'createItem'], $new_deps);

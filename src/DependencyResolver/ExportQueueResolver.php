@@ -21,15 +21,27 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
    * @param array $normalized_entities
    *   Parsed entities to import.
    */
-  protected function depthFirstSearch(array &$visited, array $identifiers, array $normalized_entities) {
+  protected function depthFirstSearch(array &$visited, array $identifiers, array $normalized_entities, array $serializer_context, int $depth = 0) {
     foreach ($identifiers as $identifier) {
       if (isset($visited[$identifier])) {
         // Already accounted for; skip.
         continue;
       }
-      else {
-        $visited[$identifier] = $identifier;
+      if (
+        $depth > 0 &&
+        // Export not targeting specific entities...
+        empty($serializer_context['batch_info']['uuids']) &&
+        // Export targeting some set of entity types, so let's avoid visiting
+        // these types here, as they should be visited on their own.
+        (isset($serializer_context['batch_info']['entity_types']) && !empty($serializer_context['batch_info']['entity_types']))
+      ) {
+        [$entity_type, ] = explode('.', $identifier, 2);
+        if (in_array($entity_type, $serializer_context['batch_info']['entity_types'])) {
+          continue;
+        }
       }
+
+      $visited[$identifier] = $identifier;
 
       // Get a decoded entity.
       $entity = $this->getEntity($identifier, $normalized_entities);
@@ -37,7 +49,7 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
       // Process dependencies first.
       if (!empty($entity['_content_sync']['entity_dependencies'])) {
         foreach ($entity['_content_sync']['entity_dependencies'] as $ref_entity_type_id => $references) {
-          $this->depthFirstSearch($visited, $references, $normalized_entities);
+          $this->depthFirstSearch($visited, $references, $normalized_entities, $serializer_context, $depth + 1);
         }
       }
 
@@ -46,7 +58,7 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
         foreach ($entity["_translations"] as $translation) {
           if (!empty($translation['_content_sync']['entity_dependencies'])) {
             foreach ($translation['_content_sync']['entity_dependencies'] as $ref_entity_type_id => $references) {
-              $this->depthFirstSearch($visited, $references, $normalized_entities);
+              $this->depthFirstSearch($visited, $references, $normalized_entities, $serializer_context, $depth + 1);
             }
           }
         }
@@ -88,13 +100,15 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
    *   identifier proper, or an array containing:
    *   - entity_type: The type of entity; and,
    *   - entity_uuid: The UUID of the entity.
+   * @param array $serializer_context
+   *   Array of serializer context.
    *
    * @return array
    *   Queue to be processed within a batch process.
    */
-  public function resolve(array $normalized_entities, $visited = []) {
+  public function resolve(array $normalized_entities, $visited = [], array $serializer_context = []) {
     foreach ($normalized_entities as $identifier => $entity) {
-      $this->depthFirstSearch($visited, [$identifier], $normalized_entities);
+      $this->depthFirstSearch($visited, [$identifier], $normalized_entities, $serializer_context);
     }
 
     return $visited;
