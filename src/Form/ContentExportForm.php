@@ -84,35 +84,13 @@ class ContentExportForm extends FormBase {
     // Delete the content tar file in case an older version exist.
     $this->fileSystem->delete($this->getTempFile());
 
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
-    $entity_type_definitions = $this->entityTypeManager->getDefinitions();
-    foreach ($entity_type_definitions as $entity_type => $definition) {
-      $reflection = new \ReflectionClass($definition->getClass());
-      if ($reflection->implementsInterface(ContentEntityInterface::class)) {
-        $entities = $this->entityTypeManager->getStorage($entity_type)
-          ->getQuery()
-          ->accessCheck()
-          ->execute();
-        foreach ($entities as $entity_id) {
-          $entities_list[] = [
-            'entity_type' => $entity_type,
-            'entity_id' => $entity_id,
-          ];
-        }
-      }
-    }
-    if (!empty($entities_list)) {
-      $serializer_context['export_type'] = 'tar';
-      $serializer_context['include_files'] = 'folder';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
-      batch_set($batch);
-    }
+    $serializer_context['export_type'] = 'tar';
+    $serializer_context['include_files'] = 'folder';
+    $batch = $this->generateExportBatch($this->entityGenerator(), $serializer_context);
+    batch_set($batch);
   }
 
-  public function snapshot() {
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
+  private function entityGenerator() {
     $entity_type_definitions = $this->entityTypeManager->getDefinitions();
     foreach ($entity_type_definitions as $entity_type => $definition) {
       $reflection = new \ReflectionClass($definition->getClass());
@@ -122,18 +100,19 @@ class ContentExportForm extends FormBase {
           ->accessCheck(FALSE)
           ->execute();
         foreach ($entities as $entity_id) {
-          $entities_list[] = [
+          yield [
             'entity_type' => $entity_type,
             'entity_id' => $entity_id,
           ];
         }
       }
     }
-    if (!empty($entities_list)) {
-      $serializer_context['export_type'] = 'snapshot';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
-      batch_set($batch);
-    }
+  }
+
+  public function snapshot() {
+    $serializer_context['export_type'] = 'snapshot';
+    $batch = $this->generateExportBatch($this->entityGenerator(), $serializer_context);
+    batch_set($batch);
   }
 
   /**
