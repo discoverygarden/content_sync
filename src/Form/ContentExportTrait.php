@@ -242,7 +242,7 @@ trait ContentExportTrait {
               \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
 
               if (
-                $serializer_context['include_dependencies']
+                isset($serializer_context['include_dependencies']) && $serializer_context['include_dependencies']
                 &&
                 (
                   // Lacking more specific info, proceed.
