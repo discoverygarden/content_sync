@@ -86,8 +86,11 @@ class ContentExportForm extends FormBase {
 
     $serializer_context['export_type'] = 'tar';
     $serializer_context['include_files'] = 'folder';
-    $batch = $this->generateExportBatch($this->entityGenerator(), $serializer_context);
-    batch_set($batch);
+    $generator = $this->entityGenerator();
+    if ($generator->valid()) {
+      $batch = $this->generateExportBatch($generator, $serializer_context);
+      batch_set($batch);
+    }
   }
 
   private function entityGenerator() {
@@ -111,8 +114,11 @@ class ContentExportForm extends FormBase {
 
   public function snapshot() {
     $serializer_context['export_type'] = 'snapshot';
-    $batch = $this->generateExportBatch($this->entityGenerator(), $serializer_context);
-    batch_set($batch);
+    $generator = $this->entityGenerator();
+    if ($generator->valid()) {
+      $batch = $this->generateExportBatch($generator, $serializer_context);
+      batch_set($batch);
+    }
   }
 
   /**
