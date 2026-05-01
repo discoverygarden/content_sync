@@ -117,7 +117,7 @@ class ImportQueueResolver implements ContentSyncResolverInterface {
   public function resolve(array $normalized_entities, $visited = [], array $serializer_context = []) {
     $visited = [];
     foreach ($normalized_entities as $identifier => $entity) {
-      $this->depthFirstSearch($visited, [$identifier], $normalized_entities);
+      $this->depthFirstSearch($visited, [$identifier], $normalized_entities, $serializer_context);
     }
     // Reverse the array to adjust it to an array_pop-driven iterator.
     return array_reverse($visited);
