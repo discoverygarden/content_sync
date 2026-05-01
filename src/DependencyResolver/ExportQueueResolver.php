@@ -31,6 +31,9 @@ class ExportQueueResolver implements ContentSyncResolverInterface {
       }
       if (
         $depth > 0 &&
+        // We appear to have the newly introduced info; otherwise, we should
+        // proceed as usual.
+        isset($serializer_context['batch_info']) && is_array($serializer_context['batch_info']) &&
         // Export not targeting specific entities...
         empty($serializer_context['batch_info']['uuids']) &&
         // Export targeting some set of entity types, so let's avoid visiting

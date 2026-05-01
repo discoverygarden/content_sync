@@ -245,10 +245,12 @@ trait ContentExportTrait {
                 $serializer_context['include_dependencies']
                 &&
                 (
+                  // Lacking more specific info, proceed.
+                  !isset($serializer_context['batch_info']) || !is_array($serializer_context['batch_info']) ||
                   // Export initially targeted some set of entities, so deal with
                   // all dependencies.
                   !empty($serializer_context['batch_info']['uuids']) ||
-                  // Export targeting all the given entity types, so avoid recursing for the given entity types.
+                  // Export targeting all the given entity types, so "including dependencies" is already accounted for.
                   (!isset($serializer_context['batch_info']['entity_types']) || !empty($serializer_context['batch_info']['entity_types']))
                 )
               ) {
