@@ -84,10 +84,10 @@ class ContentExportForm extends FormBase {
     // Delete the content tar file in case an older version exist.
     $this->fileSystem->delete($this->getTempFile());
 
-    $serializer_context['export_type'] = 'tar';
-    $serializer_context['include_files'] = 'folder';
     $generator = $this->entityGenerator();
     if ($generator->valid()) {
+      $serializer_context['export_type'] = 'tar';
+      $serializer_context['include_files'] = 'folder';
       $batch = $this->generateExportBatch($generator, $serializer_context);
       batch_set($batch);
     }
@@ -113,9 +113,9 @@ class ContentExportForm extends FormBase {
   }
 
   public function snapshot() {
-    $serializer_context['export_type'] = 'snapshot';
     $generator = $this->entityGenerator();
     if ($generator->valid()) {
+      $serializer_context['export_type'] = 'snapshot';
       $batch = $this->generateExportBatch($generator, $serializer_context);
       batch_set($batch);
     }
