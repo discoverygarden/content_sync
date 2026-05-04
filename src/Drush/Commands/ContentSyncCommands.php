@@ -438,6 +438,10 @@ class ContentSyncCommands extends DrushCommands {
         'include_files' => $include_files,
         'include_dependencies' => $options['include-dependencies'],
         'content_sync_directory' => $destination_dir,
+        'batch_info' => [
+          'uuids' => !empty($options['uuids']) ? explode(',', $options['uuids']) : [],
+          'entity_types' => !empty($options['entity-types']) ? $entity_types : [],
+        ],
       ]);
       batch_set($batch);
       drush_backend_batch_process();

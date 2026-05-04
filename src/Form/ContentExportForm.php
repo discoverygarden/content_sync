@@ -84,54 +84,39 @@ class ContentExportForm extends FormBase {
     // Delete the content tar file in case an older version exist.
     $this->fileSystem->delete($this->getTempFile());
 
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
-    $entity_type_definitions = $this->entityTypeManager->getDefinitions();
-    foreach ($entity_type_definitions as $entity_type => $definition) {
-      $reflection = new \ReflectionClass($definition->getClass());
-      if ($reflection->implementsInterface(ContentEntityInterface::class)) {
-        $entities = $this->entityTypeManager->getStorage($entity_type)
-          ->getQuery()
-          ->accessCheck()
-          ->execute();
-        foreach ($entities as $entity_id) {
-          $entities_list[] = [
-            'entity_type' => $entity_type,
-            'entity_id' => $entity_id,
-          ];
-        }
-      }
-    }
-    if (!empty($entities_list)) {
+    $generator = $this->entityGenerator(TRUE);
+    if ($generator->valid()) {
       $serializer_context['export_type'] = 'tar';
       $serializer_context['include_files'] = 'folder';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
+      $batch = $this->generateExportBatch($generator, $serializer_context);
       batch_set($batch);
     }
   }
 
-  public function snapshot() {
-    //Set batch operations by entity type/bundle
-    $entities_list = [];
+  private function entityGenerator(bool $access_check) {
     $entity_type_definitions = $this->entityTypeManager->getDefinitions();
     foreach ($entity_type_definitions as $entity_type => $definition) {
       $reflection = new \ReflectionClass($definition->getClass());
       if ($reflection->implementsInterface(ContentEntityInterface::class)) {
         $entities = $this->entityTypeManager->getStorage($entity_type)
           ->getQuery()
-          ->accessCheck(FALSE)
+          ->accessCheck($access_check)
           ->execute();
         foreach ($entities as $entity_id) {
-          $entities_list[] = [
+          yield [
             'entity_type' => $entity_type,
             'entity_id' => $entity_id,
           ];
         }
       }
     }
-    if (!empty($entities_list)) {
+  }
+
+  public function snapshot() {
+    $generator = $this->entityGenerator(FALSE);
+    if ($generator->valid()) {
       $serializer_context['export_type'] = 'snapshot';
-      $batch = $this->generateExportBatch($entities_list, $serializer_context);
+      $batch = $this->generateExportBatch($generator, $serializer_context);
       batch_set($batch);
     }
   }

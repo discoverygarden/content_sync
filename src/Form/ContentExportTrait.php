@@ -76,7 +76,7 @@ trait ContentExportTrait {
    *
    * @return array
    */
-  public function generateExportBatch(array $entities = [], array $serializer_context = []) {
+  public function generateExportBatch(iterable $entities = [], array $serializer_context = []) {
     if (!isset($serializer_context['content_sync_directory'])) {
       $serializer_context['content_sync_directory'] = content_sync_get_content_directory(ContentSyncManagerInterface::DEFAULT_DIRECTORY);
     }
@@ -239,14 +239,26 @@ trait ContentExportTrait {
               }
 
               // Invalidate the CS Cache of the entity.
-              $cache = \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
+              \Drupal::cache('content')->invalidate($entity_type.".".$bundle.":".$name);
 
-              if ($serializer_context['include_dependencies']) {
+              if (
+                isset($serializer_context['include_dependencies']) && $serializer_context['include_dependencies']
+                &&
+                (
+                  // Lacking more specific info, proceed.
+                  !isset($serializer_context['batch_info']) || !is_array($serializer_context['batch_info']) ||
+                  // Export initially targeted some set of entities, so deal with
+                  // all dependencies.
+                  !empty($serializer_context['batch_info']['uuids']) ||
+                  // Export targeting all the given entity types, so "including dependencies" is already accounted for.
+                  (!isset($serializer_context['batch_info']['entity_types']) || !empty($serializer_context['batch_info']['entity_types']))
+                )
+              ) {
                 //Include Dependencies
                 if (!isset($context['sandbox']['dependencies'][$name])) {
                   $exported_entity = Yaml::decode($exported_entity);
 
-                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported']);
+                  $queue = $this->contentSyncManager->generateExportQueue([$name => $exported_entity], $context['sandbox']['exported'], $serializer_context);
                   $new_deps = array_diff_key($queue, $context['sandbox']['dependencies']);
                   $context['sandbox']['dependencies'] += $new_deps;
                   unset($new_deps[$name]);
