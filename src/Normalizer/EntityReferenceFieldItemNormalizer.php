@@ -39,7 +39,7 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
     $values = parent::normalize($field_item, $format, $context);
 
     /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    if ($entity = ($field_item->getValue()['entity'] ?? NULL)) {
+    if ($entity = $field_item?->entity) {
       $values['target_type'] = $entity->getEntityTypeId();
       // Add the target entity UUID to the normalized output values.
       $values['target_uuid'] = $entity->uuid();
