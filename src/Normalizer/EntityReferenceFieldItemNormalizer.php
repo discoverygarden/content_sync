@@ -4,6 +4,7 @@ namespace Drupal\content_sync\Normalizer;
 
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Field\Plugin\Field\FieldType\EntityReferenceItem;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Serializer\Exception\InvalidArgumentException;
 use Symfony\Component\Serializer\Exception\UnexpectedValueException;
 use Drupal\serialization\Normalizer\FieldItemNormalizer;
@@ -16,30 +17,22 @@ use Drupal\Core\Entity\RevisionableInterface;
 class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
 
   /**
-   * The entity repository.
-   *
-   * @var \Drupal\Core\Entity\EntityRepositoryInterface
+   * Constructor.
    */
-  protected $entityRepository;
-
-  /**
-   * Constructs a EntityReferenceFieldItemNormalizer object.
-   *
-   * @param \Drupal\Core\Entity\EntityRepositoryInterface $entity_repository
-   *   The entity repository.
-   */
-  public function __construct(EntityRepositoryInterface $entity_repository) {
-    $this->entityRepository = $entity_repository;
-  }
+  public function __construct(
+    protected readonly EntityRepositoryInterface $entityRepository,
+    protected readonly LoggerInterface $logger,
+  ) {}
 
   /**
    * {@inheritdoc}
    */
   public function normalize($field_item, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
+    assert($field_item instanceof EntityReferenceItem);
     $values = parent::normalize($field_item, $format, $context);
 
     /** @var \Drupal\Core\Entity\EntityInterface $entity */
-    if ($entity = ($field_item->getValue()['entity'] ?? NULL)) {
+    if ($entity = $field_item?->entity) {
       $values['target_type'] = $entity->getEntityTypeId();
       // Add the target entity UUID to the normalized output values.
       $values['target_uuid'] = $entity->uuid();
@@ -52,6 +45,17 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
           $values['url'] = $url;
         }
       }
+    }
+    // XXX: role_delegation has a magic `__role_delegation_empty_field_value__`
+    // value to represent an empty value. Let's suppress logging it.
+    elseif (!empty($values['target_id']) && $values['target_id'] !== '__role_delegation_empty_field_value__') {
+      $this->logger->notice('Failed to acquire entity in reference field {entity_type}:{entity_id} {field_name}.{delta} of ID {target}.', [
+        'entity_type' => $field_item->getEntity()->getEntityTypeId(),
+        'entity_id' => $field_item->getEntity()->id(),
+        'field_name' => $field_item->getFieldDefinition()->getName(),
+        'delta' => $field_item->getName(),
+        'target' => $values['target_id'],
+      ]);
     }
     return $values;
   }

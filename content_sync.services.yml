@@ -1,4 +1,7 @@
 services:
+  logger.content_sync:
+    parent: logger.channel_base
+    arguments: ['content_sync']
   logger.cslog:
     class: Drupal\content_sync\Logger\ContentSyncLog
     arguments: ['@database', '@logger.log_message_parser']
@@ -84,4 +87,4 @@ services:
       # this modules generic field item normalizer.
       # @todo Find a better way for this in https://www.drupal.org/node/2575761.
       - { name: normalizer, priority: 9 }
-    arguments: ['@entity.repository']
+    arguments: ['@entity.repository', '@logger.content_sync']
