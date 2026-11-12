@@ -114,7 +114,7 @@ class ContentEntityNormalizer extends BaseContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
+  public function normalize($object, $format = NULL, array $context = []) : array {
     /* @var ContentEntityInterface $object */
     $normalized_data = parent::normalize($object, $format, $context);
 
