@@ -27,7 +27,7 @@ class EntityReferenceFieldItemNormalizer extends FieldItemNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($field_item, $format = NULL, array $context = []) : float|array|\ArrayObject|bool|int|string|null {
+  public function normalize($field_item, $format = NULL, array $context = []) : array {
     assert($field_item instanceof EntityReferenceItem);
     $values = parent::normalize($field_item, $format, $context);
 
