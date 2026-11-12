@@ -126,7 +126,7 @@ class FileEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $serializer_context = array()) : float|int|bool|\ArrayObject|array|string|null {
+  public function normalize($object, $format = NULL, array $serializer_context = array()) : array {
     $data = parent::normalize($object, $format, $serializer_context);
 
     // The image will be saved in the export directory.
