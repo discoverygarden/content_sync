@@ -30,7 +30,7 @@ class UserEntityNormalizer extends ContentEntityNormalizer {
   /**
    * {@inheritdoc}
    */
-  public function normalize($object, $format = NULL, array $context = []) : float|int|bool|\ArrayObject|array|string|null {
+  public function normalize($object, $format = NULL, array $context = []) : array {
     $normalized_data = parent::normalize($object, $format, $context);
     if (!empty($context['content_sync'])) {
       $normalized_data['pass'] = [
